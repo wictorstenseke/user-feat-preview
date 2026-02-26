@@ -1,0 +1,38 @@
+---
+description: API client conventions for fetch wrappers, error normalization, and response validation
+globs:
+  - src/lib/api.ts
+  - src/lib/**/*.test.ts
+---
+
+# API Client Conventions
+
+## Response Validation
+
+- Validate external API payloads with Zod before returning typed data
+- Convert Zod validation issues into normalized field error maps (`Record<string, string[]>`)
+- Throw a typed `ApiException` when validation fails
+
+## Error Model
+
+- Use a single error class (`ApiException`) for all transport and parsing failures
+- Normalize failures into explicit error codes: `HTTP_ERROR`, `NETWORK_ERROR`, `TIMEOUT_ERROR`, `ABORT_ERROR`, `PARSE_ERROR`, `VALIDATION_ERROR`
+- Preserve status, message, and optional field-level errors on thrown exceptions
+
+## Fetch Wrapper Behavior
+
+- Route all HTTP calls through a shared `fetchApi` wrapper
+- Support request timeouts with `AbortController` and clean up listeners/timers
+- Respect caller-provided abort signals and propagate abort reasons
+- Treat `204` and `205` responses as `undefined` payloads
+
+## Response Parsing
+
+- Parse JSON only when `content-type` indicates JSON (`application/json` or `+json`)
+- Handle non-JSON responses as text and use them for fallback error messages
+- Keep parsing logic defensive for empty bodies and malformed payloads
+
+## API Surface
+
+- Group resource operations behind domain clients (for example, `postsApi`)
+- Keep domain methods strongly typed for input and output contracts

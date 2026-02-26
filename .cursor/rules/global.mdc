@@ -1,0 +1,24 @@
+---
+description: Project-wide coding conventions and TypeScript standards
+globs:
+alwaysApply: true
+---
+
+# Global Coding Standards
+
+## TypeScript
+
+- Use TypeScript strict mode patterns; avoid `any` type
+- Prefer `const` arrow functions with explicit types over `function` declarations
+- Use `@/*` path aliases for imports (configured in tsconfig)
+
+## Code Style
+
+- Use early returns for improved readability
+- Use descriptive variable and function names
+
+## Completeness
+
+- DO NOT leave TODO comments, placeholders, or incomplete implementations
+- DO NOT guess when uncertain — ask or state limitations
+- Verify code is complete and fully functional before finishing

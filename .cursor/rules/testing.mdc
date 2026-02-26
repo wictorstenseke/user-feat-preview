@@ -1,0 +1,32 @@
+---
+description: Vitest testing conventions
+globs:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+---
+
+# Testing Conventions
+
+## File Organization
+
+- Co-locate unit tests with source (e.g., `utils.test.ts` next to `utils.ts`)
+- Place cross-cutting integration tests in `src/test/` when co-location adds noise (e.g., router/provider resilience tests)
+- Keep shared test helpers in `src/test/utils.tsx` and test setup in `src/test/setup.ts`
+- Import test utilities from `vitest` directly
+
+## Test Structure
+
+- Use `describe` blocks to group related tests
+- Test names should describe behavior: `it("should [verb] when [condition]")`
+
+## Example
+
+```typescript
+import { describe, it, expect } from "vitest";
+
+describe("MyFunction", () => {
+  it("should return true when input is valid", () => {
+    expect(myFunction(validInput)).toBe(true);
+  });
+});
+```

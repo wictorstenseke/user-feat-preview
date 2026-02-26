@@ -1,0 +1,27 @@
+---
+description: React component patterns and JSX conventions
+globs:
+  - src/**/*.tsx
+---
+
+# React Component Conventions
+
+## Exports
+
+- Export components as named exports (not default)
+
+## Naming
+
+- Event handlers: prefix with `handle` (e.g., `handleClick`, `handleSubmit`)
+- Props interfaces: name as `ComponentNameProps`
+
+## Accessibility
+
+- Include accessibility attributes: ARIA labels, keyboard handlers, semantic HTML
+- Prefer semantic interactive elements (`button`, `a`, form controls) over clickable `div`/`span`
+- Non-semantic interactive elements must include `onClick`, `onKeyDown`, `role`, and `tabIndex`
+
+## Styling
+
+- Use `cn()` utility from `@/lib/utils` for conditional Tailwind classes
+- Avoid inline styles; use Tailwind classes exclusively

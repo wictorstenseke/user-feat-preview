@@ -1,0 +1,27 @@
+---
+description: TanStack Query patterns for data fetching hooks
+globs:
+  - src/hooks/**/*.ts
+---
+
+# TanStack Query Conventions
+
+## Query Keys
+
+- Define query keys using factory pattern (e.g., `postKeys.list()`, `postKeys.detail(id)`)
+- Keep query key factories co-located with their hooks
+
+## Hook Naming
+
+- Query hooks: `use[Entity]Query` (e.g., `usePostsQuery`, `usePostQuery`)
+- Mutation hooks: `use[Action][Entity]Mutation` (e.g., `useCreatePostMutation`, `useDeletePostMutation`)
+
+## Mutations
+
+- Include optimistic updates for mutations affecting visible data
+- Always handle `onError` with rollback for optimistic mutations
+- Use `onSettled` to invalidate related queries
+
+## Conditional Fetching
+
+- Use `enabled` option for conditional fetching (e.g., `enabled: id > 0`)

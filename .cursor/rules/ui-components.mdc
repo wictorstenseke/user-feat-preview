@@ -1,0 +1,51 @@
+description: Shadcn UI component patterns with unified radix-ui imports
+globs:
+  - src/components/ui/**/*.tsx
+---
+
+# UI Component Conventions
+
+## Shadcn CLI
+
+- **BEFORE building custom UI components**, check if Shadcn has it
+- Use CLI to fetch components: `npx shadcn@latest add <component>`
+- Use CLI migration for unified Radix imports: `npx shadcn@latest migrate radix`
+- Example: `npx shadcn@latest add button`, `npx shadcn@latest add dialog`
+- Components are configured to use **Radix UI** via `components.json` style: "new-york"
+
+## Architecture
+
+- **Primary**: Radix UI (`radix-ui`) - use unified imports
+- **Secondary**: Base UI (`@base-ui/react`) - only if Shadcn generates it
+- Shadcn adds styling on top of the headless primitives
+- Check component imports to determine which primitive library is used
+
+## Component Structure
+
+- Follow Shadcn component structure with `cva` for variants
+- Use `React.ComponentProps` for extending native element props
+- Forward refs using `React.forwardRef` pattern
+- Import from the appropriate primitive library (`radix-ui` or `@base-ui/react/*`)
+
+## Icons
+
+- Use **Lucide React** for icons: `import { IconName } from "lucide-react"`
+- Example: `import { Moon, Sun, Check } from "lucide-react"`
+
+## Component Library Detection
+
+When adding new components:
+
+1. Check the generated component's imports
+2. If it uses `radix-ui`, it's a Radix UI component
+3. If it uses `@base-ui/react/*`, it's a Base UI component
+4. Both are valid - use whichever the CLI generates based on component availability
+
+## Converting Components (if needed)
+
+If you need to convert between Base UI and Radix UI:
+
+1. For Radix, prefer `npx shadcn@latest migrate radix` for automated import updates
+2. Remove unused `@radix-ui/react-*` packages after migration
+3. For Base UI, install `@base-ui/react` and update imports accordingly
+4. Keep the styling classes from the generated component

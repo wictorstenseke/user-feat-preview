@@ -362,27 +362,111 @@ Respond ONLY with valid JSON.`,
         summary: parsed.summary || text.substring(0, 500),
         details: parsed.details || {},
         followUpQuestion: parsed.followUpQuestion || undefined,
+        isFallback: false,
       };
-    } catch (error) {
-      console.error("OpenAI API error:", error);
+    } catch (error: unknown) {
+      const errDetails: Record<string, unknown> = { inputLength: text.length };
+
+      if (error instanceof Error) {
+        errDetails.message = error.message;
+        errDetails.name = error.name;
+      }
+
+      const apiError = error as { status?: number; code?: string; type?: string };
+      if (apiError.status) errDetails.httpStatus = apiError.status;
+      if (apiError.code) errDetails.code = apiError.code;
+      if (apiError.type) errDetails.type = apiError.type;
+
+      console.error("OpenAI API error — falling back to manual draft:", errDetails);
       return getFallbackDraft(text);
     }
   }
 );
 
+const extractFallbackTitle = (text: string): string => {
+  const firstLine = text.split("\n")[0].trim();
+  const sentenceEnd = firstLine.search(/[.!?]/);
+  const raw = sentenceEnd > 0 ? firstLine.substring(0, sentenceEnd) : firstLine;
+  const trimmed = raw.substring(0, 80).trim();
+
+  if (trimmed.length < 5) {
+    return "User feedback submission";
+  }
+
+  const firstChar = trimmed.charAt(0).toUpperCase();
+  return firstChar + trimmed.slice(1);
+};
+
 const getFallbackDraft = (text: string) => {
-  const inferredType = text.toLowerCase().includes("bug") ? "bug" : "feature";
-  const title = text.split("\n")[0].substring(0, 100);
+  const lowerText = text.toLowerCase();
+  const bugKeywords = ["bug", "broken", "crash", "error", "fail", "wrong", "not working", "doesn't work"];
+  const inferredType = bugKeywords.some((kw) => lowerText.includes(kw)) ? "bug" : "feature";
+
+  const title = extractFallbackTitle(text);
   const summary = text.substring(0, 500);
 
   return {
-    type: inferredType,
+    type: inferredType as "feature" | "bug",
     title,
     summary,
     details: {},
-    followUpQuestion: undefined,
+    followUpQuestion: inferredType === "bug"
+      ? "Could you describe the steps to reproduce this issue and what you expected to happen?"
+      : "Could you provide more details about how you'd like this feature to work?",
+    isFallback: true,
   };
 };
+
+export const addVote = functions.https.onCall(
+  async (request: functions.https.CallableRequest<{ feedbackId: string; userId: string }>) => {
+    const { feedbackId, userId } = request.data;
+
+    if (!feedbackId || !userId || typeof feedbackId !== "string" || typeof userId !== "string") {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Missing or invalid feedbackId or userId"
+      );
+    }
+
+    const voteId = `${feedbackId}-${userId}`;
+    const voteRef = db.collection("votes").doc(voteId);
+    const voteDoc = await voteRef.get();
+
+    if (voteDoc.exists) {
+      return { success: false, alreadyVoted: true };
+    }
+
+    const clientIp = request.rawRequest.headers["x-forwarded-for"] as string || "unknown";
+    const rateLimitKey = `votes-${clientIp}`;
+    const isRateLimited = !(await checkRateLimit(rateLimitKey, 5, 60));
+
+    if (isRateLimited) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        "Too many votes. Please wait a moment."
+      );
+    }
+
+    await voteRef.set({
+      itemId: feedbackId,
+      userId,
+      createdAt: admin.firestore.Timestamp.now(),
+    });
+
+    const feedbackRef = db.collection("feedback").doc(feedbackId);
+    const feedbackDoc = await feedbackRef.get();
+    if (!feedbackDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "Feedback not found");
+    }
+
+    await feedbackRef.update({
+      votes: admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.Timestamp.now(),
+    });
+
+    return { success: true, alreadyVoted: false };
+  }
+);
 
 export const syncGitHubStatus = functions.https.onCall(
   async (request: functions.https.CallableRequest<{ feedbackId: string }>) => {

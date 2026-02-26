@@ -38,6 +38,11 @@ const syncGitHubStatusCallable = httpsCallable<
   { success: boolean; status?: string }
 >(functions, "syncGitHubStatus");
 
+const addVoteCallable = httpsCallable<
+  { feedbackId: string; userId: string },
+  { success: boolean; alreadyVoted: boolean }
+>(functions, "addVote");
+
 const mapFirestoreDocToFeedback = (
   doc: DocumentSnapshot
 ): FeedbackItem | null => {
@@ -141,42 +146,8 @@ export const feedbackApi = {
 
   async addVote(feedbackId: string, userId: string): Promise<boolean> {
     try {
-      const voteRef = doc(
-        db,
-        "votes",
-        `${feedbackId}-${userId}`
-      );
-      const voteSnapshot = await getDoc(voteRef);
-
-      if (voteSnapshot.exists()) {
-        return false;
-      }
-
-      const rateLimitRef = doc(db, "ratelimits", `votes-${userId}`);
-      const rateLimitDoc = await getDoc(rateLimitRef);
-
-      if (rateLimitDoc.exists()) {
-        const data = rateLimitDoc.data();
-        const now = Math.floor(Date.now() / 1000);
-        const windowStart = data.windowStart || now;
-
-        if (now - windowStart <= 60 && data.count >= 5) {
-          throw new Error("Too many votes. Please wait a moment.");
-        }
-      }
-
-      await setDoc(voteRef, {
-        itemId: feedbackId,
-        userId,
-        createdAt: new Date(),
-      });
-
-      const feedbackRef = doc(db, "feedback", feedbackId);
-      await updateDoc(feedbackRef, {
-        votes: increment(1),
-      });
-
-      return true;
+      const result = await addVoteCallable({ feedbackId, userId });
+      return result.data.success && !result.data.alreadyVoted;
     } catch (error) {
       console.error("Failed to add vote:", error);
       throw error;

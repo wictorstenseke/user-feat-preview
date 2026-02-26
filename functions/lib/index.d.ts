@@ -24,11 +24,12 @@ export declare const createFeedback: functions.https.CallableFunction<CreateFeed
 export declare const generateDraft: functions.https.CallableFunction<{
     text: string;
 } & HoneypotData, Promise<{
-    type: string;
+    type: "feature" | "bug";
     title: string;
     summary: string;
     details: {};
-    followUpQuestion: undefined;
+    followUpQuestion: string;
+    isFallback: boolean;
 } | {
     error: string;
     type?: undefined;
@@ -36,13 +37,22 @@ export declare const generateDraft: functions.https.CallableFunction<{
     summary?: undefined;
     details?: undefined;
     followUpQuestion?: undefined;
+    isFallback?: undefined;
 } | {
     type: "feature" | "bug";
     title: string;
     summary: string;
     details: Record<string, string>;
     followUpQuestion: string | undefined;
+    isFallback: boolean;
     error?: undefined;
+}>, unknown>;
+export declare const addVote: functions.https.CallableFunction<{
+    feedbackId: string;
+    userId: string;
+}, Promise<{
+    success: boolean;
+    alreadyVoted: boolean;
 }>, unknown>;
 export declare const syncGitHubStatus: functions.https.CallableFunction<{
     feedbackId: string;

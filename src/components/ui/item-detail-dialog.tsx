@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { feedbackKeys, useAddVoteMutation } from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
 
 interface ItemDetailDialogProps {
@@ -58,11 +59,12 @@ export const ItemDetailDialog = ({
 }: ItemDetailDialogProps) => {
   const [commentInput, setCommentInput] = React.useState("");
   const [userIdentifier, setUserIdentifier] = React.useState("");
-  const [hasVoted, setHasVoted] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  const addVoteMutation = useAddVoteMutation();
+
   const { data: item, isLoading: isLoadingItem } = useQuery({
-    queryKey: ["feedback", itemId],
+    queryKey: feedbackKeys.detail(itemId),
     queryFn: () => feedbackApi.getFeedbackById(itemId),
     enabled: open,
   });
@@ -71,6 +73,12 @@ export const ItemDetailDialog = ({
     queryKey: ["comments", itemId],
     queryFn: () => feedbackApi.getComments(itemId),
     enabled: open,
+  });
+
+  const { data: hasVoted = false } = useQuery({
+    queryKey: feedbackKeys.hasVoted(itemId, userIdentifier),
+    queryFn: () => feedbackApi.hasUserVoted(itemId, userIdentifier),
+    enabled: open && !!userIdentifier,
   });
 
   React.useEffect(() => {
@@ -87,11 +95,6 @@ export const ItemDetailDialog = ({
     }
   }, [open, userIdentifier]);
 
-  React.useEffect(() => {
-    if (!open || !item || !userIdentifier) return;
-    feedbackApi.hasUserVoted(item.id, userIdentifier).then(setHasVoted);
-  }, [open, item, userIdentifier]);
-
   const handleAddComment = async () => {
     if (!commentInput.trim() || !item || !userIdentifier) return;
 
@@ -104,15 +107,9 @@ export const ItemDetailDialog = ({
     }
   };
 
-  const handleVote = async () => {
+  const handleVote = () => {
     if (!item || !userIdentifier || hasVoted) return;
-
-    try {
-      await feedbackApi.addVote(item.id, userIdentifier);
-      setHasVoted(true);
-    } catch (error) {
-      console.error("Failed to vote:", error);
-    }
+    addVoteMutation.mutate({ feedbackId: item.id, userId: userIdentifier });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

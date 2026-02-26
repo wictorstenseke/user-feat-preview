@@ -98,6 +98,7 @@ export interface DraftFeedback {
   summary: string;
   details?: FeedbackDetails;
   followUpQuestion?: string;
+  isFallback?: boolean;
 }
 
 export interface Vote {

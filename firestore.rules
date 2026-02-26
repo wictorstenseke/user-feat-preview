@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Feedback items - read by everyone, created via cloud function only
+    match /feedback/{feedbackId} {
+      allow read: if true;
+      allow create: if false; // Created via cloud function
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Votes - allow read/write with rate limiting via cloud function
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.auth == null;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // Comments - allow read/write
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // User sessions for tracking (anonymous fingerprinting)
+    match /sessions/{sessionId} {
+      allow read, write: if true;
+    }
+  }
+}

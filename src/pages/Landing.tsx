@@ -1,3 +1,4 @@
+import { FeedbackList } from "@/components/feedback/FeedbackList";
 import { Button } from "@/components/ui/button";
 
 export function Landing() {
@@ -101,6 +102,18 @@ export function Landing() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section aria-label="Feedback items">
+        <div className="mb-6 space-y-2">
+          <h2 className="scroll-m-20 text-3xl font-semibold tracking-tight md:text-4xl">
+            Feedback
+          </h2>
+          <p className="text-muted-foreground">
+            Browse and sort submitted feedback items.
+          </p>
+        </div>
+        <FeedbackList />
       </section>
     </div>
   );

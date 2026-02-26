@@ -14,15 +14,15 @@ describe("Landing", () => {
       screen.getByRole("heading", { name: /how can i help/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText(/ask me anything/i)
+      screen.getByPlaceholderText(/describe your feature request or bug report/i)
     ).toBeInTheDocument();
   });
 
-  it("renders the send button", () => {
+  it("renders the generate draft button", () => {
     renderWithQueryClient(<Landing />);
 
     expect(
-      screen.getByRole("button", { name: /send message/i })
+      screen.getByRole("button", { name: /generate draft/i })
     ).toBeInTheDocument();
   });
 
@@ -30,14 +30,14 @@ describe("Landing", () => {
     const user = userEvent.setup();
     renderWithQueryClient(<Landing />);
 
-    const input = screen.getByPlaceholderText(/ask me anything/i);
-    const sendButton = screen.getByRole("button", { name: /send message/i });
+    const input = screen.getByPlaceholderText(/describe your feature request or bug report/i);
+    const sendButton = screen.getByRole("button", { name: /generate draft/i });
 
     await user.type(input, "Hello");
     expect(input).toHaveValue("Hello");
 
     await user.click(sendButton);
-    // Submit starts loading; input clears after simulated 2s delay
-    expect(sendButton).toHaveAttribute("aria-label", "Stop generation");
+    // Submit starts loading; button shows "Generating..." state
+    expect(sendButton).toHaveAttribute("aria-label", "Generating...");
   });
 });

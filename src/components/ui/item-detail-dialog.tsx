@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { ArrowUp, ExternalLink, ThumbsUp } from "lucide-react";
+
 import { useQuery } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { feedbackApi } from "@/lib/feedbackApi";
-import { FeedbackItem } from "@/types/api";
 
 interface ItemDetailDialogProps {
   open: boolean;

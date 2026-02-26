@@ -1,5 +1,7 @@
 # FEAT-01 GitHub Integration for Feedback Items
 
+**Status: Done**
+
 ## Summary
 
 Integrate feedback submissions with GitHub Issues so that GitHub acts as the source of truth for item status via labels, while Firestore stores user-facing metadata such as votes, comments, and cached preview URLs.

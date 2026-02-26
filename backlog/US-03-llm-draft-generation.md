@@ -1,5 +1,7 @@
 # US-03 LLM Draft Generation
 
+**Status: Done**
+
 ## Summary
 
 Backend logic that calls an LLM to turn raw user feedback into a structured draft ticket with an optional single clarifying question.

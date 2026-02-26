@@ -6,7 +6,6 @@ import type {
   PaginationParams,
   Post,
   UpdatePostInput,
-  CreateFeedbackInput,
 } from "@/types/api";
 
 /**

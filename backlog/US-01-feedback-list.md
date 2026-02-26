@@ -1,5 +1,7 @@
 # US-01 Feedback List
 
+**Status: Done**
+
 ## Summary
 
 A public list of feedback items shown as cards beneath the AI-style composer, giving a quick overview of feature and bug requests and their current status.

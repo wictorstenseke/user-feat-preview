@@ -1,5 +1,7 @@
 # US-07 Comments
 
+**Status: Done**
+
 ## Summary
 
 Allow users to read and write comments on feedback items, stored anonymously in Firestore.

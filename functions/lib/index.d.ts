@@ -24,6 +24,12 @@ export declare const createFeedback: functions.https.CallableFunction<CreateFeed
 export declare const generateDraft: functions.https.CallableFunction<{
     text: string;
 } & HoneypotData, Promise<{
+    type: string;
+    title: string;
+    summary: string;
+    details: {};
+    followUpQuestion: undefined;
+} | {
     error: string;
     type?: undefined;
     title?: undefined;
@@ -31,11 +37,11 @@ export declare const generateDraft: functions.https.CallableFunction<{
     details?: undefined;
     followUpQuestion?: undefined;
 } | {
-    type: any;
-    title: any;
-    summary: any;
-    details: any;
-    followUpQuestion: any;
+    type: "feature" | "bug";
+    title: string;
+    summary: string;
+    details: Record<string, string>;
+    followUpQuestion: string | undefined;
     error?: undefined;
 }>, unknown>;
 export declare const syncGitHubStatus: functions.https.CallableFunction<{
@@ -50,5 +56,6 @@ export declare const syncGitHubStatus: functions.https.CallableFunction<{
     message?: undefined;
 }>, unknown>;
 export declare const updatePreviewUrl: functions.https.HttpsFunction;
+export declare const onGitHubWebhook: functions.https.HttpsFunction;
 export {};
 //# sourceMappingURL=index.d.ts.map

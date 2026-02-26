@@ -1,5 +1,7 @@
 # FEAT-02 PR Preview Flow via GitHub Pages
 
+**Status: Done**
+
 ## Summary
 
 Provide a preview URL for work-in-progress changes by deploying pull request builds to GitHub Pages and surfacing the preview link back into the feedback item.

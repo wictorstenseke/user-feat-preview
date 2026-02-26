@@ -1,5 +1,7 @@
 # US-04 Duplicate Detection
 
+**Status: Done**
+
 ## Summary
 
 Detect potential duplicate feedback items before final submission and let users upvote an existing item instead of creating a new one.

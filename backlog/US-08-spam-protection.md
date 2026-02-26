@@ -1,5 +1,7 @@
 # US-08 Spam Protection (No Auth)
 
+**Status: Done**
+
 ## Summary
 
 Protect the feedback portal from basic spam and abuse without requiring user authentication.

@@ -64,14 +64,20 @@ jobs:
           echo "url=${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}/" >> $GITHUB_OUTPUT
 
       - name: Call backend with preview URL
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          jq -n \
+            --argjson prNumber "${{ github.event.pull_request.number }}" \
+            --arg previewUrl "${{ steps.preview-url.outputs.url }}" \
+            --arg prBody "$PR_BODY" \
+            --arg prTitle "$PR_TITLE" \
+            '{ prNumber: $prNumber, previewUrl: $previewUrl, prBody: $prBody, prTitle: $prTitle }' | \
           curl -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.PREVIEW_WEBHOOK_SECRET }}" \
-            -d '{
-              "prNumber": ${{ github.event.pull_request.number }},
-              "previewUrl": "${{ steps.preview-url.outputs.url }}"
-            }' \
+            -d @- \
             ${{ secrets.PREVIEW_WEBHOOK_URL }}
         continue-on-error: true
 

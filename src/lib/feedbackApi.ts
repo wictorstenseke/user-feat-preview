@@ -1,27 +1,26 @@
 import {
   collection,
-  query,
-  where,
-  getDocs,
   doc,
-  getDoc,
-  updateDoc,
-  setDoc,
-  increment,
-  Query,
   DocumentSnapshot,
-  collectionGroup,
+  getDocs,
+  getDoc,
+  increment,
   orderBy,
-  limit,
+  Query,
+  query,
+  setDoc,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
+
 import { db, functions } from "./firebase";
-import {
-  FeedbackItem,
+
+import type {
+  Comment,
   CreateFeedbackInput,
   DraftFeedback,
-  Vote,
-  Comment,
+  FeedbackItem,
 } from "@/types/api";
 
 const createFeedbackCallable = httpsCallable<
@@ -204,7 +203,8 @@ export const feedbackApi = {
     }
 
     const commentsCollection = collection(db, "comments");
-    const commentRef = await setDoc(doc(commentsCollection), {
+    const commentRef = doc(commentsCollection);
+    await setDoc(commentRef, {
       itemId: feedbackId,
       text,
       userIdentifier,
@@ -239,7 +239,6 @@ export const feedbackApi = {
 
   async searchDuplicates(
     title: string,
-    summary: string,
     limit_: number = 5
   ): Promise<FeedbackItem[]> {
     const feedbackCollection = collection(db, "feedback");

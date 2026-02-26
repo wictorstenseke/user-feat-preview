@@ -1,5 +1,7 @@
 # US-05 Item Detail View
 
+**Status: Done**
+
 ## Summary
 
 A detail view (drawer or modal) for a single feedback item, showing the full description, status, preview link, comments, and voting.

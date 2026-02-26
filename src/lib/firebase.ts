@@ -1,9 +1,9 @@
 import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  enableIndexedDbPersistence,
-} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import {
+  enableIndexedDbPersistence,
+  getFirestore,
+} from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {

@@ -75,7 +75,6 @@ export function Landing() {
       
       const possibleDuplicates = await feedbackApi.searchDuplicates(
         generatedDraft.title,
-        generatedDraft.summary,
         5
       );
       setDuplicates(possibleDuplicates);
@@ -133,6 +132,17 @@ export function Landing() {
   const handleEditDraft = (field: keyof Draft, value: string) => {
     if (!draft) return;
     setDraft({ ...draft, [field]: value });
+  };
+
+  const handleEditDraftDetail = (
+    field: keyof NonNullable<Draft["details"]>,
+    value: string
+  ) => {
+    if (!draft) return;
+    setDraft({
+      ...draft,
+      details: { ...draft.details, [field]: value },
+    });
   };
 
   const handleOpenItemDetail = (itemId: string) => {
@@ -226,6 +236,42 @@ export function Landing() {
               placeholder="Detailed description"
             />
           </div>
+
+          {draft.type === "bug" && (
+            <div className="space-y-3 rounded-lg border border-input bg-muted/30 p-4">
+              <p className="text-sm font-semibold">Bug details</p>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Steps to reproduce</label>
+                <textarea
+                  value={draft.details?.stepsToReproduce || ""}
+                  onChange={(e) => handleEditDraftDetail("stepsToReproduce", e.target.value)}
+                  className="w-full rounded border border-input px-3 py-2 text-sm resize-none"
+                  rows={3}
+                  placeholder="1. Go to... 2. Click on..."
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Expected behavior</label>
+                <textarea
+                  value={draft.details?.expectedBehavior || ""}
+                  onChange={(e) => handleEditDraftDetail("expectedBehavior", e.target.value)}
+                  className="w-full rounded border border-input px-3 py-2 text-sm resize-none"
+                  rows={2}
+                  placeholder="What should happen"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Actual behavior</label>
+                <textarea
+                  value={draft.details?.actualBehavior || ""}
+                  onChange={(e) => handleEditDraftDetail("actualBehavior", e.target.value)}
+                  className="w-full rounded border border-input px-3 py-2 text-sm resize-none"
+                  rows={2}
+                  placeholder="What actually happens"
+                />
+              </div>
+            </div>
+          )}
 
           {draft.followUpQuestion && (
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950 p-3 border border-blue-200 dark:border-blue-800">

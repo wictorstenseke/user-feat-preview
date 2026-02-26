@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 
 interface CommentsDialogProps {
   open: boolean;
@@ -45,9 +44,7 @@ const PLACEHOLDER_COMMENTS = [
 export const CommentsDialog = ({
   open,
   onOpenChange,
-  itemId,
   itemTitle,
-  commentCount,
 }: CommentsDialogProps) => {
   const [inputValue, setInputValue] = React.useState("");
   const [comments, setComments] = React.useState(PLACEHOLDER_COMMENTS);

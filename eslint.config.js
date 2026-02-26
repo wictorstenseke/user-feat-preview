@@ -8,7 +8,7 @@ import importPlugin from 'eslint-plugin-import'
 import unusedImports from 'eslint-plugin-unused-imports'
 
 export default tseslint.config(
-  { ignores: ['dist', 'functions/lib'] },
+  { ignores: ['dist', 'functions'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

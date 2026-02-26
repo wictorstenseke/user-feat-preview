@@ -2,24 +2,20 @@ name: PR Preview Deployment
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
 
 permissions:
-  pull-requests: write
   contents: write
-  pages: write
-  id-token: write
+  pull-requests: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   deploy-preview:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout code
@@ -37,6 +33,7 @@ jobs:
       - name: Build app
         run: npm run build
         env:
+          BASE_PATH: /${{ github.event.repository.name }}/pull/${{ github.event.pull_request.number }}/
           VITE_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -44,24 +41,20 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
 
-      - name: Create preview directory structure
-        run: |
-          mkdir -p gh-pages/pull/${{ github.event.pull_request.number }}
-          cp -r dist/* gh-pages/pull/${{ github.event.pull_request.number }}/
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: gh-pages
+      - name: Copy index.html to 404.html for SPA routing
+        run: cp dist/index.html dist/404.html
 
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: pull/${{ github.event.pull_request.number }}
+          keep_files: true
 
-      - name: Get preview URL
+      - name: Set preview URL
         id: preview-url
-        run: |
-          echo "url=${{ github.server_url }}/${{ github.repository }}/pull/${{ github.event.pull_request.number }}/" >> $GITHUB_OUTPUT
+        run: echo "url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pull/${{ github.event.pull_request.number }}/" >> $GITHUB_OUTPUT
 
       - name: Call backend with preview URL
         env:
@@ -85,9 +78,56 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.createComment({
+            const body = `🚀 **Preview deployed!**\n\n` +
+              `[View preview](${{ steps.preview-url.outputs.url }})\n\n` +
+              `*Updates on each push to this PR.*`;
+
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `🚀 **Preview deployed!**\n\n[View preview](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pull/${{ github.event.pull_request.number }}/)\n\n*Updates as you push new commits.*`
-            })
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Preview deployed!')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
+
+  cleanup-preview:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Remove preview directory
+        run: |
+          if [ -d "pull/${{ github.event.pull_request.number }}" ]; then
+            rm -rf "pull/${{ github.event.pull_request.number }}"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Clean up preview for PR #${{ github.event.pull_request.number }}"
+            git push
+          else
+            echo "No preview directory found, skipping cleanup."
+          fi

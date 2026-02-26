@@ -1,5 +1,5 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import { Octokit } from "octokit";
 import OpenAI from "openai";
 admin.initializeApp();
@@ -11,9 +11,13 @@ const openaiApiKey = process.env.OPENAI_API_KEY;
 const octokit = new Octokit({
     auth: githubToken,
 });
-const openai = new OpenAI({
-    apiKey: openaiApiKey,
-});
+let openai = null;
+const getOpenAI = () => {
+    if (!openai && openaiApiKey) {
+        openai = new OpenAI({ apiKey: openaiApiKey });
+    }
+    return openai;
+};
 const validateHoneypot = (data) => {
     return !data.honeypot || data.honeypot.trim() === "";
 };
@@ -138,7 +142,11 @@ export const generateDraft = functions.https.onCall(async (request) => {
         return getFallbackDraft(text);
     }
     try {
-        const response = await openai.chat.completions.create({
+        const openaiClient = getOpenAI();
+        if (!openaiClient) {
+            return getFallbackDraft(text);
+        }
+        const response = await openaiClient.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: [
                 {

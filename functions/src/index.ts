@@ -1,8 +1,7 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import { Octokit } from "octokit";
 import OpenAI from "openai";
-import { FieldValue } from "firebase-admin/firestore";
 
 admin.initializeApp();
 
@@ -16,9 +15,13 @@ const octokit = new Octokit({
   auth: githubToken,
 });
 
-const openai = new OpenAI({
-  apiKey: openaiApiKey,
-});
+let openai: OpenAI | null = null;
+const getOpenAI = () => {
+  if (!openai && openaiApiKey) {
+    openai = new OpenAI({ apiKey: openaiApiKey });
+  }
+  return openai;
+};
 
 interface CreateFeedbackRequest {
   title: string;
@@ -224,7 +227,12 @@ export const generateDraft = functions.https.onCall(
     }
 
     try {
-      const response = await openai.chat.completions.create({
+      const openaiClient = getOpenAI();
+      if (!openaiClient) {
+        return getFallbackDraft(text);
+      }
+      
+      const response = await openaiClient.chat.completions.create({
         model: "gpt-3.5-turbo",
         messages: [
           {

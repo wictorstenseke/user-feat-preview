@@ -1,52 +1,43 @@
 import { screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 
 import { renderWithQueryClient } from "@/test/utils";
 
 import { Landing } from "./Landing";
 
 describe("Landing", () => {
-  it("renders the main hero section", () => {
+  it("renders the chat prompt heading", () => {
     renderWithQueryClient(<Landing />);
 
     expect(
-      screen.getByRole("heading", {
-        name: /build faster with a focused react starter/i,
-      })
+      screen.getByRole("heading", { name: /how can i help/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/one landing page, strong defaults/i)
+      screen.getByPlaceholderText(/ask me anything/i)
     ).toBeInTheDocument();
   });
 
-  it("renders the primary actions", () => {
+  it("renders the send button", () => {
     renderWithQueryClient(<Landing />);
 
     expect(
-      screen.getByRole("link", { name: /see stack benefits/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /view on github/i })
+      screen.getByRole("button", { name: /send message/i })
     ).toBeInTheDocument();
   });
 
-  it("renders all stack benefit cards", () => {
+  it("accepts input and submits on button click", async () => {
+    const user = userEvent.setup();
     renderWithQueryClient(<Landing />);
 
-    const expectedBenefitTitles = [
-      "Vite + Rolldown",
-      "React 19 + TypeScript",
-      "TanStack Router",
-      "TanStack Query",
-      "Tailwind CSS v4",
-      "shadcn/ui + Radix",
-      "Vitest + Testing Library",
-      "ESLint + Prettier",
-      "GitHub Actions CI",
-    ];
+    const input = screen.getByPlaceholderText(/ask me anything/i);
+    const sendButton = screen.getByRole("button", { name: /send message/i });
 
-    expectedBenefitTitles.forEach((title) => {
-      expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
-    });
+    await user.type(input, "Hello");
+    expect(input).toHaveValue("Hello");
+
+    await user.click(sendButton);
+    // Submit starts loading; input clears after simulated 2s delay
+    expect(sendButton).toHaveAttribute("aria-label", "Stop generation");
   });
 });

@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Octokit } from "octokit";
 import OpenAI from "openai";
+import { FieldValue } from "firebase-admin/firestore";
 
 admin.initializeApp();
 
@@ -44,7 +45,6 @@ const checkRateLimit = async (
   windowSeconds: number
 ): Promise<boolean> => {
   const now = Math.floor(Date.now() / 1000);
-  const windowStart = now - windowSeconds;
 
   const rateLimitRef = db.collection("ratelimits").doc(key);
   const doc = await rateLimitRef.get();
@@ -54,8 +54,8 @@ const checkRateLimit = async (
 
   if (doc.exists) {
     const data = doc.data();
-    count = data.count || 0;
-    windowStartTime = data.windowStart || now;
+    count = data?.count || 0;
+    windowStartTime = data?.windowStart || now;
 
     if (now - windowStartTime > windowSeconds) {
       count = 0;
@@ -69,7 +69,7 @@ const checkRateLimit = async (
 
   await rateLimitRef.set(
     {
-      count: increment(1),
+      count: admin.firestore.FieldValue.increment(1),
       windowStart: windowStartTime,
       lastUpdated: admin.firestore.Timestamp.now(),
     },
@@ -140,7 +140,9 @@ const formatIssueBody = (
 };
 
 export const createFeedback = functions.https.onCall(
-  async (data: CreateFeedbackRequest & HoneypotData, context) => {
+  async (request: functions.https.CallableRequest<CreateFeedbackRequest & HoneypotData>) => {
+    const data = request.data;
+    
     if (!validateHoneypot(data)) {
       console.warn("Honeypot triggered");
       return { success: false, id: null };
@@ -162,7 +164,7 @@ export const createFeedback = functions.https.onCall(
       );
     }
 
-    const clientIp = context.rawRequest.headers["x-forwarded-for"] || "unknown";
+    const clientIp = request.rawRequest.headers["x-forwarded-for"] as string || "unknown";
     const isRateLimited = !(await checkRateLimit(`submissions-${clientIp}`, 10, 86400));
 
     if (isRateLimited) {
@@ -202,7 +204,9 @@ export const createFeedback = functions.https.onCall(
 );
 
 export const generateDraft = functions.https.onCall(
-  async (data: { text: string } & HoneypotData, context) => {
+  async (request: functions.https.CallableRequest<{ text: string } & HoneypotData>) => {
+    const data = request.data;
+    
     if (!validateHoneypot(data)) {
       console.warn("Honeypot triggered on draft generation");
       return { error: "Invalid submission" };
@@ -296,8 +300,8 @@ const getFallbackDraft = (text: string) => {
 };
 
 export const syncGitHubStatus = functions.https.onCall(
-  async (data: { feedbackId: string }, context) => {
-    const { feedbackId } = data;
+  async (request: functions.https.CallableRequest<{ feedbackId: string }>) => {
+    const { feedbackId } = request.data;
 
     const feedbackDoc = await db.collection("feedback").doc(feedbackId).get();
     if (!feedbackDoc.exists) {
@@ -322,10 +326,10 @@ export const syncGitHubStatus = functions.https.onCall(
         issue_number: issueNumber,
       });
 
-      const labels = issue.data.labels.map((label) =>
+      const labels = issue.data.labels.map((label: any) =>
         typeof label === "string" ? label : label.name
       );
-      const statusLabel = labels.find((label) => label.startsWith("cf:status/"));
+      const statusLabel = labels.find((label: string) => label.startsWith("cf:status/"));
       const status = statusLabel
         ? statusLabel.replace("cf:status/", "")
         : "new";

@@ -1,11 +1,18 @@
 import { useState } from "react";
 
-import { ArrowUp, ExternalLink, MessageCircle, Square, ThumbsUp } from "lucide-react";
+import { ArrowUp, ArrowUpDown, ExternalLink, MessageCircle, Square, ThumbsUp } from "lucide-react";
 
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ChatContainerContent,
   ChatContainerRoot,
@@ -49,6 +56,20 @@ interface UserMessage {
 
 type ChatMessage = UserMessage | AssistantMessage;
 
+type SortOption = "newest" | "oldest" | "most-voted";
+
+const sortFeedbackItems = (items: FeedbackItem[], sort: SortOption): FeedbackItem[] => {
+  const sorted = [...items];
+  if (sort === "most-voted") {
+    sorted.sort((a, b) => b.votes - a.votes);
+  } else if (sort === "oldest") {
+    sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  } else {
+    sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  return sorted;
+};
+
 const FeedbackCardSkeleton = () => (
   <Item variant="outline" size="sm">
     <ItemContent>
@@ -80,6 +101,7 @@ export function Landing() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState<DraftFeedback | null>(null);
   const [detailItemId, setDetailItemId] = useState<string | null>(null);
+  const [activeSortOrder, setActiveSortOrder] = useState<SortOption>("newest");
   const [userIdentifier] = useState<string>(() => {
     const stored = localStorage.getItem("userIdentifier");
     if (stored) return stored;
@@ -402,7 +424,29 @@ export function Landing() {
       </div>
 
       <section aria-label="Feedback list">
-        <h2 className="mb-4 text-lg font-semibold">Feedback</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Feedback</h2>
+          {activeFeedback.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground">
+                  <ArrowUpDown className="size-3.5" />
+                  Sort
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup
+                  value={activeSortOrder}
+                  onValueChange={(v) => setActiveSortOrder(v as SortOption)}
+                >
+                  <DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="most-voted">Most upvoted</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
         {isLoadingActive ? (
           <ItemGroup className="gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -415,7 +459,7 @@ export function Landing() {
           </div>
         ) : (
           <ItemGroup className="gap-4">
-            {activeFeedback.map((item) => (
+            {sortFeedbackItems(activeFeedback, activeSortOrder).map((item) => (
               <Item
                 key={item.id}
                 variant="outline"

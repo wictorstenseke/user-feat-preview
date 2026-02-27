@@ -41,11 +41,12 @@ function createWrapper(queryClient: QueryClient) {
  */
 export function renderWithQueryClient(
   ui: ReactElement,
-  options?: Omit<RenderOptions, "wrapper">
+  options?: Omit<RenderOptions, "wrapper"> & { queryClient?: QueryClient }
 ) {
-  const queryClient = createTestQueryClient();
+  const { queryClient: providedQueryClient, ...renderOptions } = options ?? {};
+  const queryClient = providedQueryClient ?? createTestQueryClient();
   return {
-    ...render(ui, { wrapper: createWrapper(queryClient), ...options }),
+    ...render(ui, { wrapper: createWrapper(queryClient), ...renderOptions }),
     queryClient,
   };
 }

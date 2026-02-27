@@ -1,8 +1,6 @@
 # US-06 Voting
 
-**Status: Done (minor gap)**
-
-> Gap: The list view vote button does not visually indicate whether the current user has already voted on an item. The detail view handles this correctly (button changes style and is disabled after voting). The list view calls `addVote` directly without checking `hasUserVoted` first — the duplicate vote is safely rejected server-side, but there is no visual feedback in the list.
+**Status: Done**
 
 ## Summary
 

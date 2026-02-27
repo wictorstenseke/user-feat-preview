@@ -61,13 +61,18 @@ backlog/
   FEAT-02-pr-preview-flow.md
 
 docs/
+  setup.md
+  implementation-summary.md
   testing.md
+  testing-guide.md
   testing-strategy-findings.md
   PERFORMANCE_IMPROVEMENTS.md
   deployment-github-pages.md
 ```
 
 ## Getting started
+
+For first-time setup (Firebase, GitHub, environment variables), see [docs/setup.md](docs/setup.md).
 
 ### Install dependencies
 
@@ -98,7 +103,7 @@ npm run type-check   # TypeScript
 npm run check        # CI-style combined checks
 ```
 
-For more detailed testing guidance, see `docs/testing.md` and `docs/testing-strategy-findings.md`.
+For more detailed testing guidance, see `docs/testing.md`, `docs/testing-guide.md`, and `docs/testing-strategy-findings.md`.
 
 ## Deployment
 

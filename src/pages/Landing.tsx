@@ -32,7 +32,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { feedbackKeys, useAddVoteMutation, useFeedbackRealtimeSync } from "@/hooks/useFeedback";
 import { createLocalDraft, feedbackApi } from "@/lib/feedbackApi";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeDate } from "@/lib/utils";
 
 import type { DraftFeedback, FeedbackItem } from "@/types/api";
 
@@ -497,7 +497,7 @@ export function Landing() {
                         <MessageCircle className="size-3.5" />
                         {item.commentCount}
                       </button>
-                      <span>{item.lastUpdated}</span>
+                      <span>{formatRelativeDate(item.lastUpdated)}</span>
                     </div>
                     <ItemActions>
                       {item.previewUrl && (
@@ -603,7 +603,7 @@ export function Landing() {
                         <MessageCircle className="size-3.5" />
                         {item.commentCount}
                       </button>
-                      <span>{item.lastUpdated}</span>
+                      <span>{formatRelativeDate(item.lastUpdated)}</span>
                     </div>
                   </ItemFooter>
                 </ItemContent>

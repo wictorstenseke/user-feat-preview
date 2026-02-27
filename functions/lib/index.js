@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as functionsV1Firestore from "firebase-functions/v1/firestore";
 import { Octokit } from "octokit";
 import OpenAI from "openai";
 admin.initializeApp();
@@ -544,4 +545,23 @@ const handlePrMerged = async (payload) => {
         console.log(`PR #${pr.number} merged → issue #${issueNumber} status updated to merged`);
     }
 };
+/**
+ * When a comment is created, increment commentCount on the corresponding
+ * feedback document. Client cannot update feedback docs (Firestore rules).
+ */
+export const onCommentCreated = functionsV1Firestore
+    .document("comments/{commentId}")
+    .onCreate(async (snapshot, _context) => {
+    const data = snapshot.data();
+    const itemId = data.itemId;
+    if (!itemId) {
+        console.warn("onCommentCreated: missing itemId");
+        return;
+    }
+    const feedbackRef = db.collection("feedback").doc(itemId);
+    await feedbackRef.update({
+        commentCount: admin.firestore.FieldValue.increment(1),
+        updatedAt: admin.firestore.Timestamp.now(),
+    });
+});
 //# sourceMappingURL=index.js.map

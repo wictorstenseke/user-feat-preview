@@ -4,13 +4,11 @@ import {
   DocumentSnapshot,
   getDocs,
   getDoc,
-  increment,
   onSnapshot,
   orderBy,
   Query,
   query,
   setDoc,
-  updateDoc,
   where,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -231,11 +229,8 @@ export const feedbackApi = {
       createdAt: new Date(),
     });
 
-    const feedbackRef = doc(db, "feedback", feedbackId);
-    await updateDoc(feedbackRef, {
-      commentCount: increment(1),
-    });
-
+    // commentCount is incremented by onCommentCreated Cloud Function
+    // (client cannot update feedback docs due to Firestore rules)
     return commentRef.id;
   },
 
@@ -244,7 +239,7 @@ export const feedbackApi = {
     const q = query(
       commentsCollection,
       where("itemId", "==", feedbackId),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "asc")
     );
 
     const snapshot = await getDocs(q);

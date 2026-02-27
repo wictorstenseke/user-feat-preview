@@ -1,4 +1,5 @@
 import * as functions from "firebase-functions";
+import * as functionsV1Firestore from "firebase-functions/v1/firestore";
 interface CreateFeedbackRequest {
     title: string;
     summary: string;
@@ -67,5 +68,10 @@ export declare const syncGitHubStatus: functions.https.CallableFunction<{
 }>, unknown>;
 export declare const updatePreviewUrl: functions.https.HttpsFunction;
 export declare const onGitHubWebhook: functions.https.HttpsFunction;
+/**
+ * When a comment is created, increment commentCount on the corresponding
+ * feedback document. Client cannot update feedback docs (Firestore rules).
+ */
+export declare const onCommentCreated: import("firebase-functions/lib/v1/cloud-functions").CloudFunction<functionsV1Firestore.QueryDocumentSnapshot>;
 export {};
 //# sourceMappingURL=index.d.ts.map

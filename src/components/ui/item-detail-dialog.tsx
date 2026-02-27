@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { ArrowUp, Check, ExternalLink, ThumbsUp } from "lucide-react";
+import { ArrowUp, Check, ExternalLink, Loader2, ThumbsUp } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -21,7 +21,7 @@ import {
   useAddVoteMutation,
 } from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
-import { cn, formatRelativeDate } from "@/lib/utils";
+import { formatRelativeDate } from "@/lib/utils";
 
 interface ItemDetailDialogProps {
   open: boolean;
@@ -68,9 +68,11 @@ export const ItemDetailDialog = ({
 }: ItemDetailDialogProps) => {
   const [commentInput, setCommentInput] = React.useState("");
   const [userIdentifier, setUserIdentifier] = React.useState("");
-  const [commentSuccess, setCommentSuccess] = React.useState(false);
+  const [commentStatus, setCommentStatus] = React.useState<
+    { type: "submitting"; id: string } | { type: "success"; id: string } | null
+  >(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const successTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const addVoteMutation = useAddVoteMutation();
   const addCommentMutation = useAddCommentMutation();
@@ -109,7 +111,7 @@ export const ItemDetailDialog = ({
 
   React.useEffect(() => {
     return () => {
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     };
   }, []);
 
@@ -118,14 +120,22 @@ export const ItemDetailDialog = ({
 
     const text = commentInput;
     setCommentInput("");
+    const optimisticId = `optimistic-${Date.now()}`;
+    setCommentStatus({ type: "submitting", id: optimisticId });
 
     addCommentMutation.mutate(
-      { feedbackId: item.id, text, userIdentifier },
+      { feedbackId: item.id, text, userIdentifier, optimisticId },
       {
-        onSuccess: () => {
-          setCommentSuccess(true);
-          if (successTimerRef.current) clearTimeout(successTimerRef.current);
-          successTimerRef.current = setTimeout(() => setCommentSuccess(false), 2000);
+        onSuccess: (newCommentId) => {
+          setCommentStatus({ type: "success", id: newCommentId });
+          if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+          statusTimerRef.current = setTimeout(
+            () => setCommentStatus(null),
+            2000
+          );
+        },
+        onError: () => {
+          setCommentStatus(null);
         },
       }
     );
@@ -272,19 +282,12 @@ export const ItemDetailDialog = ({
               <Button
                 onClick={handleAddComment}
                 size="icon"
-                variant={commentSuccess ? "default" : "default"}
-                disabled={!commentInput.trim() && !commentSuccess}
-                aria-label={commentSuccess ? "Comment submitted" : "Submit comment"}
-                className={cn(
-                  "transition-colors shrink-0",
-                  commentSuccess && "bg-green-600 hover:bg-green-600 border-green-600"
-                )}
+                variant="default"
+                disabled={!commentInput.trim()}
+                aria-label="Submit comment"
+                className="shrink-0"
               >
-                {commentSuccess ? (
-                  <Check className="size-4" />
-                ) : (
-                  <ArrowUp className="size-4" />
-                )}
+                <ArrowUp className="size-4" />
               </Button>
             </div>
 
@@ -296,24 +299,46 @@ export const ItemDetailDialog = ({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div
-                        key={comment.id}
-                        className="pb-4 border-b last:border-b-0 last:pb-0"
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="font-medium text-sm">
-                            {comment.userIdentifier}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatRelativeDate(comment.createdAt)}
-                          </span>
+                    {[...comments].reverse().map((comment) => {
+                      const isSubmitting =
+                        commentStatus?.type === "submitting" &&
+                        commentStatus.id === comment.id;
+                      const isSuccess =
+                        commentStatus?.type === "success" &&
+                        commentStatus.id === comment.id;
+                      return (
+                        <div
+                          key={comment.id}
+                          className="pb-4 border-b last:border-b-0 last:pb-0"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-medium text-sm">
+                              {comment.userIdentifier}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              {isSubmitting && (
+                                <Loader2
+                                  className="size-3.5 animate-spin text-muted-foreground"
+                                  aria-label="Submitting"
+                                />
+                              )}
+                              {isSuccess && (
+                                <Check
+                                  className="size-3.5 text-green-600 shrink-0"
+                                  aria-label="Posted"
+                                />
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeDate(comment.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-sm text-foreground leading-relaxed">
+                            {comment.text}
+                          </p>
                         </div>
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {comment.text}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

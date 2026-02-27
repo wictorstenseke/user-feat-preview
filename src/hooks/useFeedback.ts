@@ -158,6 +158,7 @@ interface AddCommentVariables {
   feedbackId: string;
   text: string;
   userIdentifier: string;
+  optimisticId?: string;
 }
 
 export const useAddCommentMutation = () => {
@@ -166,7 +167,12 @@ export const useAddCommentMutation = () => {
   return useMutation({
     mutationFn: ({ feedbackId, text, userIdentifier }: AddCommentVariables) =>
       feedbackApi.addComment(feedbackId, text, userIdentifier),
-    onMutate: async ({ feedbackId, text, userIdentifier }: AddCommentVariables) => {
+    onMutate: async ({
+      feedbackId,
+      text,
+      userIdentifier,
+      optimisticId,
+    }: AddCommentVariables) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: feedbackKeys.comments(feedbackId) }),
         queryClient.cancelQueries({ queryKey: feedbackKeys.list("active") }),
@@ -188,7 +194,7 @@ export const useAddCommentMutation = () => {
       );
 
       const optimisticComment: Comment = {
-        id: `optimistic-${Date.now()}`,
+        id: optimisticId ?? `optimistic-${Date.now()}`,
         itemId: feedbackId,
         text,
         userIdentifier,
@@ -197,7 +203,7 @@ export const useAddCommentMutation = () => {
 
       queryClient.setQueryData<Comment[]>(
         feedbackKeys.comments(feedbackId),
-        [optimisticComment, ...(previousComments ?? [])]
+        [...(previousComments ?? []), optimisticComment]
       );
 
       const incrementCommentCount = (item: FeedbackItem) =>
@@ -227,6 +233,27 @@ export const useAddCommentMutation = () => {
       }
 
       return { previousComments, previousActive, previousMerged, previousDetail };
+    },
+    onSuccess: (newCommentId, { feedbackId, text, userIdentifier }) => {
+      queryClient.setQueryData<Comment[]>(
+        feedbackKeys.comments(feedbackId),
+        (old) => {
+          if (!old) return old;
+          const withoutOptimistic = old.filter(
+            (c) => !c.id.startsWith("optimistic-")
+          );
+          return [
+            ...withoutOptimistic,
+            {
+              id: newCommentId,
+              itemId: feedbackId,
+              text,
+              userIdentifier,
+              createdAt: new Date().toISOString(),
+            },
+          ];
+        }
+      );
     },
     onError: (_error, { feedbackId }, context) => {
       if (!context) return;

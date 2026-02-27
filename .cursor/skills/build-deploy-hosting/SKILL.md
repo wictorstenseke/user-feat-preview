@@ -1,16 +1,17 @@
 ---
-name: deploy-hosting
-description: Commit changes, push to remote, build the app, and deploy only Firebase hosting. Use when the user wants to ship frontend changes, deploy hosting only, or run the full commit-push-deploy workflow.
+name: build-deploy-hosting
+description: Build the app and deploy only Firebase hosting. Use when the user wants to ship frontend changes to hosting without touching functions or Firestore.
 ---
 
-# Deploy Hosting Only
+# Build and Deploy Hosting Only
 
 ## When to Use
 
 Apply this skill when the user asks to:
+- Build and deploy hosting
 - Deploy hosting only
-- Commit, push, and deploy
-- Ship frontend changes to hosting
+- Ship frontend to Firebase hosting
+- Deploy the site
 
 ## Workflow
 
@@ -26,18 +27,7 @@ npm run build
 
 If the build fails, fix the errors (lint, type, or test failures as reported), then run `npm run build` again. Repeat until the build succeeds before proceeding.
 
-### 2. Commit and push
-
-```bash
-git add -A
-git status
-git commit -m "<descriptive message>"
-git push
-```
-
-Generate a descriptive commit message from the staged changes (conventional format: `feat:`, `fix:`, `chore:`, etc.). Do not ask the user unless they explicitly want to provide one.
-
-### 3. Deploy hosting only
+### 2. Deploy hosting only
 
 ```bash
 firebase deploy --only hosting
@@ -49,3 +39,8 @@ This deploys only the hosting target; functions and Firestore are not touched.
 
 - Hosting public dir: `dist` (from `firebase.json`)
 - Build output: `dist/` (gitignored; built locally before deploy)
+
+## Notes
+
+- This skill does not commit or push; use `commit-push-github` to sync changes to GitHub first.
+- For the full workflow (commit → push → build → deploy), run both skills in sequence.

@@ -420,18 +420,13 @@ export function Landing() {
                 key={item.id}
                 variant="outline"
                 size="sm"
-                className="cursor-pointer hover:bg-accent transition-colors"
+                className="cursor-pointer hover:border-primary/60 transition-colors"
                 onClick={() => handleOpenItemDetail(item.id)}
               >
                 <ItemContent>
                   <ItemHeader>
                     <ItemTitle>{item.title}</ItemTitle>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={item.type === "feature" ? "default" : "destructive"}
-                      >
-                        {item.type === "feature" ? "Feature" : "Bug"}
-                      </Badge>
                       <Badge
                         variant={
                           item.status === "new"
@@ -458,7 +453,7 @@ export function Landing() {
                     </div>
                   </ItemHeader>
                   <ItemDescription>{item.summary}</ItemDescription>
-                  <ItemFooter>
+                  <ItemFooter className="mt-1.5 -mx-4 -mb-3 px-3 py-1.5 rounded-b-[6px] bg-muted/50">
                     <div className="flex items-center gap-4 text-muted-foreground text-xs">
                       <button
                         onClick={(e) => {
@@ -548,23 +543,18 @@ export function Landing() {
                 key={item.id}
                 variant="outline"
                 size="sm"
-                className="cursor-pointer hover:bg-accent transition-colors"
+                className="cursor-pointer hover:border-primary/60 transition-colors"
                 onClick={() => handleOpenItemDetail(item.id)}
               >
                 <ItemContent>
                   <ItemHeader>
                     <ItemTitle>{item.title}</ItemTitle>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={item.type === "feature" ? "default" : "destructive"}
-                      >
-                        {item.type === "feature" ? "Feature" : "Bug"}
-                      </Badge>
                       <Badge variant="secondary">Merged</Badge>
                     </div>
                   </ItemHeader>
                   <ItemDescription>{item.summary}</ItemDescription>
-                  <ItemFooter>
+                  <ItemFooter className="mt-1.5 -mx-4 -mb-3 px-3 py-1.5 rounded-b-[6px] bg-muted/50">
                     <div className="flex items-center gap-4 text-muted-foreground text-xs">
                       <button
                         onClick={(e) => {

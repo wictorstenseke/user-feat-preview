@@ -44,6 +44,8 @@ const addVoteCallable = httpsCallable<
   { success: boolean; alreadyVoted: boolean }
 >(functions, "addVote");
 
+const ACTIVE_STATUSES = ["new", "planned", "in-progress", "preview"];
+
 const mapFirestoreDocToFeedback = (
   doc: DocumentSnapshot
 ): FeedbackItem | null => {
@@ -71,10 +73,9 @@ export const feedbackApi = {
   subscribeToActiveFeedback(
     onUpdate: (items: FeedbackItem[]) => void
   ): () => void {
-    const activeStatuses = ["new", "planned", "in-progress", "preview"];
     const q = query(
       collection(db, "feedback"),
-      where("status", "in", activeStatuses),
+      where("status", "in", ACTIVE_STATUSES),
       orderBy("updatedAt", "desc")
     );
     return onSnapshot(q, (snapshot) => {
@@ -122,8 +123,7 @@ export const feedbackApi = {
   },
 
   async getActiveFeedback(): Promise<FeedbackItem[]> {
-    const activeStatuses = ["new", "planned", "in-progress", "preview"];
-    return this.getFeedbackItems(activeStatuses);
+    return this.getFeedbackItems(ACTIVE_STATUSES);
   },
 
   async getMergedFeedback(): Promise<FeedbackItem[]> {
@@ -250,7 +250,11 @@ export const feedbackApi = {
     const titleWords = title.toLowerCase().split(/\s+/).filter(Boolean);
 
     const results: FeedbackItem[] = [];
-    const q = query(feedbackCollection, orderBy("updatedAt", "desc"));
+    const q = query(
+      feedbackCollection,
+      where("status", "in", ACTIVE_STATUSES),
+      orderBy("updatedAt", "desc")
+    );
 
     const snapshot = await getDocs(q);
 

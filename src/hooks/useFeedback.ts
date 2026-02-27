@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { feedbackApi } from "@/lib/feedbackApi";
 
-import type { FeedbackItem } from "@/types/api";
+import type { Comment, FeedbackItem } from "@/types/api";
 
 /**
  * Query keys for feedback
@@ -17,6 +17,7 @@ export const feedbackKeys = {
   detail: (id: string) => [...feedbackKeys.all, id] as const,
   hasVoted: (feedbackId: string, userId: string) =>
     ["hasVoted", feedbackId, userId] as const,
+  comments: (feedbackId: string) => ["comments", feedbackId] as const,
 };
 
 export const useFeedbackRealtimeSync = () => {
@@ -149,6 +150,105 @@ export const useAddVoteMutation = () => {
       queryClient.invalidateQueries({
         queryKey: feedbackKeys.hasVoted(feedbackId, userId),
       });
+    },
+  });
+};
+
+interface AddCommentVariables {
+  feedbackId: string;
+  text: string;
+  userIdentifier: string;
+}
+
+export const useAddCommentMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ feedbackId, text, userIdentifier }: AddCommentVariables) =>
+      feedbackApi.addComment(feedbackId, text, userIdentifier),
+    onMutate: async ({ feedbackId, text, userIdentifier }: AddCommentVariables) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: feedbackKeys.comments(feedbackId) }),
+        queryClient.cancelQueries({ queryKey: feedbackKeys.list("active") }),
+        queryClient.cancelQueries({ queryKey: feedbackKeys.list("merged") }),
+        queryClient.cancelQueries({ queryKey: feedbackKeys.detail(feedbackId) }),
+      ]);
+
+      const previousComments = queryClient.getQueryData<Comment[]>(
+        feedbackKeys.comments(feedbackId)
+      );
+      const previousActive = queryClient.getQueryData<FeedbackItem[]>(
+        feedbackKeys.list("active")
+      );
+      const previousMerged = queryClient.getQueryData<FeedbackItem[]>(
+        feedbackKeys.list("merged")
+      );
+      const previousDetail = queryClient.getQueryData<FeedbackItem>(
+        feedbackKeys.detail(feedbackId)
+      );
+
+      const optimisticComment: Comment = {
+        id: `optimistic-${Date.now()}`,
+        itemId: feedbackId,
+        text,
+        userIdentifier,
+        createdAt: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData<Comment[]>(
+        feedbackKeys.comments(feedbackId),
+        [optimisticComment, ...(previousComments ?? [])]
+      );
+
+      const incrementCommentCount = (item: FeedbackItem) =>
+        item.id === feedbackId
+          ? { ...item, commentCount: item.commentCount + 1 }
+          : item;
+
+      if (previousActive) {
+        queryClient.setQueryData<FeedbackItem[]>(
+          feedbackKeys.list("active"),
+          previousActive.map(incrementCommentCount)
+        );
+      }
+
+      if (previousMerged) {
+        queryClient.setQueryData<FeedbackItem[]>(
+          feedbackKeys.list("merged"),
+          previousMerged.map(incrementCommentCount)
+        );
+      }
+
+      if (previousDetail) {
+        queryClient.setQueryData<FeedbackItem>(
+          feedbackKeys.detail(feedbackId),
+          { ...previousDetail, commentCount: previousDetail.commentCount + 1 }
+        );
+      }
+
+      return { previousComments, previousActive, previousMerged, previousDetail };
+    },
+    onError: (_error, { feedbackId }, context) => {
+      if (!context) return;
+
+      const { previousComments, previousActive, previousMerged, previousDetail } = context;
+
+      if (previousComments !== undefined) {
+        queryClient.setQueryData(feedbackKeys.comments(feedbackId), previousComments);
+      }
+      if (previousActive) {
+        queryClient.setQueryData(feedbackKeys.list("active"), previousActive);
+      }
+      if (previousMerged) {
+        queryClient.setQueryData(feedbackKeys.list("merged"), previousMerged);
+      }
+      if (previousDetail) {
+        queryClient.setQueryData(feedbackKeys.detail(feedbackId), previousDetail);
+      }
+    },
+    onSettled: (_data, _error, { feedbackId }) => {
+      queryClient.invalidateQueries({ queryKey: feedbackKeys.comments(feedbackId) });
+      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
     },
   });
 };

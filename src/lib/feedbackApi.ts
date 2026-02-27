@@ -244,7 +244,7 @@ export const feedbackApi = {
     const q = query(
       commentsCollection,
       where("itemId", "==", feedbackId),
-      orderBy("createdAt", "asc")
+      orderBy("createdAt", "desc")
     );
 
     const snapshot = await getDocs(q);

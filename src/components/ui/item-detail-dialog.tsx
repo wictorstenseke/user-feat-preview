@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { ArrowUp, ExternalLink, ThumbsUp } from "lucide-react";
+import { ArrowUp, Check, ExternalLink, ThumbsUp } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,9 +15,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { feedbackKeys, useAddVoteMutation } from "@/hooks/useFeedback";
+import {
+  feedbackKeys,
+  useAddCommentMutation,
+  useAddVoteMutation,
+} from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
-import { formatRelativeDate } from "@/lib/utils";
+import { cn, formatRelativeDate } from "@/lib/utils";
 
 interface ItemDetailDialogProps {
   open: boolean;
@@ -64,9 +68,12 @@ export const ItemDetailDialog = ({
 }: ItemDetailDialogProps) => {
   const [commentInput, setCommentInput] = React.useState("");
   const [userIdentifier, setUserIdentifier] = React.useState("");
+  const [commentSuccess, setCommentSuccess] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const successTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const addVoteMutation = useAddVoteMutation();
+  const addCommentMutation = useAddCommentMutation();
 
   const { data: item, isLoading: isLoadingItem } = useQuery({
     queryKey: feedbackKeys.detail(itemId),
@@ -74,8 +81,8 @@ export const ItemDetailDialog = ({
     enabled: open,
   });
 
-  const { data: comments = [], refetch: refetchComments } = useQuery({
-    queryKey: ["comments", itemId],
+  const { data: comments = [] } = useQuery({
+    queryKey: feedbackKeys.comments(itemId),
     queryFn: () => feedbackApi.getComments(itemId),
     enabled: open,
   });
@@ -100,16 +107,28 @@ export const ItemDetailDialog = ({
     }
   }, [open, userIdentifier]);
 
-  const handleAddComment = async () => {
+  React.useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const handleAddComment = () => {
     if (!commentInput.trim() || !item || !userIdentifier) return;
 
-    try {
-      await feedbackApi.addComment(item.id, commentInput, userIdentifier);
-      setCommentInput("");
-      await refetchComments();
-    } catch (error) {
-      console.error("Failed to add comment:", error);
-    }
+    const text = commentInput;
+    setCommentInput("");
+
+    addCommentMutation.mutate(
+      { feedbackId: item.id, text, userIdentifier },
+      {
+        onSuccess: () => {
+          setCommentSuccess(true);
+          if (successTimerRef.current) clearTimeout(successTimerRef.current);
+          successTimerRef.current = setTimeout(() => setCommentSuccess(false), 2000);
+        },
+      }
+    );
   };
 
   const handleVote = () => {
@@ -137,6 +156,8 @@ export const ItemDetailDialog = ({
   if (!item) {
     return null;
   }
+
+  const isMerged = item.status === "merged";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,7 +224,7 @@ export const ItemDetailDialog = ({
                 {item.votes}
               </Button>
 
-              {item.previewUrl && (
+              {item.previewUrl && !isMerged && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -217,7 +238,7 @@ export const ItemDetailDialog = ({
                 </Button>
               )}
 
-              {item.githubIssueUrl && (
+              {item.githubIssueUrl && !isMerged && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -251,11 +272,19 @@ export const ItemDetailDialog = ({
               <Button
                 onClick={handleAddComment}
                 size="icon"
-                variant="default"
-                disabled={!commentInput.trim()}
-                aria-label="Submit comment"
+                variant={commentSuccess ? "default" : "default"}
+                disabled={!commentInput.trim() && !commentSuccess}
+                aria-label={commentSuccess ? "Comment submitted" : "Submit comment"}
+                className={cn(
+                  "transition-colors shrink-0",
+                  commentSuccess && "bg-green-600 hover:bg-green-600 border-green-600"
+                )}
               >
-                <ArrowUp className="size-4" />
+                {commentSuccess ? (
+                  <Check className="size-4" />
+                ) : (
+                  <ArrowUp className="size-4" />
+                )}
               </Button>
             </div>
 

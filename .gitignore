@@ -33,5 +33,8 @@ dist-ssr
 routeTree.gen.ts
 .tanstack
 
+# Firebase local deploy cache
+.firebase/
+
 # Codex local workspace metadata
 .codex/

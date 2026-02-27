@@ -29,34 +29,17 @@ import {
   PromptInputActions,
   PromptInputTextarea,
 } from "@/components/ui/prompt-input";
-import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { feedbackKeys, useAddVoteMutation, useFeedbackRealtimeSync } from "@/hooks/useFeedback";
-import { feedbackApi } from "@/lib/feedbackApi";
+import { createLocalDraft, feedbackApi } from "@/lib/feedbackApi";
 import { cn } from "@/lib/utils";
 
 import type { DraftFeedback, FeedbackItem } from "@/types/api";
-
-const PROMPT_SUGGESTIONS: { label: string; text: string }[] = [
-  {
-    label: "I found a bug",
-    text: "I want to report functionality that does not work as I expected.",
-  },
-  {
-    label: "Suggest a new feature",
-    text: "I have an idea for a new feature that would improve the product.",
-  },
-  {
-    label: "Request a UI improvement",
-    text: "I would like to suggest an improvement to the user interface.",
-  },
-];
 
 interface AssistantMessage {
   role: "assistant";
   content: string;
   draft?: DraftFeedback;
-  duplicates?: FeedbackItem[];
 }
 
 interface UserMessage {
@@ -151,47 +134,31 @@ export function Landing() {
     setIsLoading(true);
 
     try {
-      let contextText: string;
+      const priorUserText = messages
+        .filter((m): m is UserMessage => m.role === "user")
+        .map((m) => m.content)
+        .join("\n\n");
+      const contextText = draft
+        ? `${priorUserText}\n${messageText}`
+        : messageText;
 
-      if (draft) {
-        const priorUserText = messages
-          .filter((m): m is UserMessage => m.role === "user")
-          .map((m) => m.content)
-          .join("\n\n");
-        contextText = [
-          priorUserText,
-          "[Current draft]",
-          `Title: ${draft.title}`,
-          `Type: ${draft.type}`,
-          `Description: ${draft.summary}`,
-          "",
-          `[Refinement request]: ${messageText}`,
-        ].join("\n");
-      } else {
-        contextText = messageText;
-      }
+      const useLLM = import.meta.env.VITE_USE_LLM_DRAFT === "true";
+      const generatedDraft = useLLM
+        ? await feedbackApi.generateDraft(contextText, "")
+        : await new Promise<ReturnType<typeof createLocalDraft>>((resolve) =>
+            setTimeout(() => resolve(createLocalDraft(contextText)), 800)
+          );
 
-      const generatedDraft = await feedbackApi.generateDraft(contextText, "");
       setDraft(generatedDraft);
 
-      const possibleDuplicates = await feedbackApi.searchDuplicates(
-        generatedDraft.title,
-        5
-      );
-
-      const introText = generatedDraft.isFallback
-        ? "I couldn't fully analyze your request, but here's a basic draft. Feel free to refine it by sending another message."
-        : draft
-          ? "I've updated the draft based on your feedback:"
-          : "Here's what I've drafted based on your input:";
+      const introText = draft
+        ? "I've updated the draft with your additions:"
+        : "Here's what I've drafted based on your input:";
 
       const assistantMessages: ChatMessage[] = [
-        { role: "assistant", content: introText, draft: generatedDraft, duplicates: possibleDuplicates },
+        { role: "assistant", content: introText, draft: generatedDraft },
+        { role: "assistant", content: "Would you like to add something? You can submit as-is or type more below." },
       ];
-
-      if (generatedDraft.followUpQuestion) {
-        assistantMessages.push({ role: "assistant", content: generatedDraft.followUpQuestion });
-      }
 
       setMessages((prev) => [...prev, ...assistantMessages]);
     } catch (error) {
@@ -275,16 +242,6 @@ export function Landing() {
     }
   };
 
-  const handleUpvoteDuplicate = async (itemId: string) => {
-    try {
-      await feedbackApi.addVote(itemId, userIdentifier);
-      setDraft(null);
-      setMessages([]);
-    } catch (error) {
-      console.error("Failed to upvote duplicate:", error);
-    }
-  };
-
   const handleOpenItemDetail = (itemId: string) => {
     setDetailItemId(itemId);
   };
@@ -292,7 +249,7 @@ export function Landing() {
   const hasConversation = messages.length > 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-12 py-12">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-12 py-12">
       <div className="text-center">
         <h1 className="scroll-m-20 text-2xl font-semibold tracking-tight md:text-3xl">
           How can I help?
@@ -333,12 +290,6 @@ export function Landing() {
                       {assistantMsg.draft && (
                         <Message className="justify-start w-full">
                           <div className="w-full rounded-2xl border border-input bg-background p-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Badge variant={assistantMsg.draft.type === "feature" ? "default" : "destructive"}>
-                                {assistantMsg.draft.type === "feature" ? "Feature" : "Bug"}
-                              </Badge>
-                            </div>
-
                             <p className="font-semibold text-sm leading-snug">{assistantMsg.draft.title}</p>
 
                             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -371,55 +322,6 @@ export function Landing() {
                                     <p className="text-foreground">{assistantMsg.draft.details.actualBehavior}</p>
                                   </div>
                                 )}
-                              </div>
-                            )}
-
-                            {assistantMsg.duplicates && assistantMsg.duplicates.length > 0 && (
-                              <div className="rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800">
-                                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-3">
-                                  Possible duplicates found
-                                </p>
-                                <div className="space-y-2">
-                                  {assistantMsg.duplicates.map((duplicate) => (
-                                    <div
-                                      key={duplicate.id}
-                                      className="flex items-center justify-between p-2 rounded bg-white dark:bg-amber-900/20"
-                                    >
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-foreground truncate">
-                                          {duplicate.title}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <Badge variant="outline" className="text-xs">
-                                            {duplicate.type === "feature" ? "Feature" : "Bug"}
-                                          </Badge>
-                                          <Badge variant="secondary" className="text-xs">
-                                            {duplicate.status}
-                                          </Badge>
-                                          <span className="text-xs text-muted-foreground">
-                                            {duplicate.votes} votes
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-2 ml-2">
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => handleOpenItemDetail(duplicate.id)}
-                                        >
-                                          View
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="default"
-                                          onClick={() => handleUpvoteDuplicate(duplicate.id)}
-                                        >
-                                          Upvote
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
                               </div>
                             )}
 
@@ -497,20 +399,6 @@ export function Landing() {
           aria-hidden="true"
         />
 
-        {/* Suggestion pills shown in empty state */}
-        {!hasConversation && !input.trim() && (
-          <div className="flex flex-wrap gap-2 justify-start pt-1">
-            {PROMPT_SUGGESTIONS.map((suggestion) => (
-              <PromptSuggestion
-                key={suggestion.label}
-                size="sm"
-                onClick={() => setInput(suggestion.text)}
-              >
-                {suggestion.label}
-              </PromptSuggestion>
-            ))}
-          </div>
-        )}
       </div>
 
       <section aria-label="Feedback list">
@@ -522,7 +410,7 @@ export function Landing() {
             ))}
           </ItemGroup>
         ) : activeFeedback.length === 0 ? (
-          <div className="text-center text-muted-foreground">
+          <div className="text-left text-sm text-muted-foreground">
             No feedback yet. Be the first to share!
           </div>
         ) : (
@@ -639,6 +527,7 @@ export function Landing() {
         )}
       </section>
 
+      {(activeFeedback.length > 0 || mergedFeedback.length > 0 || isLoadingMerged) && (
       <section aria-label="Recently merged">
         <h2 className="mb-4 text-lg font-semibold">Recently implemented</h2>
         <p className="mb-4 text-muted-foreground text-sm">
@@ -723,6 +612,7 @@ export function Landing() {
           </ItemGroup>
         )}
       </section>
+      )}
 
       <ItemDetailDialog
         open={detailItemId !== null}

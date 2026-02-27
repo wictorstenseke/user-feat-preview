@@ -24,6 +24,20 @@ import type {
   FeedbackItem,
 } from "@/types/api";
 
+const BUG_KEYWORDS = ["bug", "broken", "crash", "error", "fail", "wrong", "not working", "doesn't work", "doesnt work"];
+
+export const createLocalDraft = (text: string): DraftFeedback => {
+  const lowerText = text.toLowerCase();
+  const type = BUG_KEYWORDS.some((kw) => lowerText.includes(kw)) ? "bug" : "feature";
+  return {
+    type,
+    title: "User Feedback",
+    summary: text.substring(0, 500),
+    details: {},
+    isFallback: true,
+  };
+};
+
 const createFeedbackCallable = httpsCallable<
   CreateFeedbackInput & { honeypot?: string },
   { success: boolean; id: string; issueNumber?: number }

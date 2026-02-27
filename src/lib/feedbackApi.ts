@@ -26,6 +26,8 @@ import type {
 
 const BUG_KEYWORDS = ["bug", "broken", "crash", "error", "fail", "wrong", "not working", "doesn't work", "doesnt work"];
 
+const ACTIVE_STATUSES = ["new", "planned", "in-progress", "preview"];
+
 export const createLocalDraft = (text: string): DraftFeedback => {
   const lowerText = text.toLowerCase();
   const type = BUG_KEYWORDS.some((kw) => lowerText.includes(kw)) ? "bug" : "feature";
@@ -85,10 +87,9 @@ export const feedbackApi = {
   subscribeToActiveFeedback(
     onUpdate: (items: FeedbackItem[]) => void
   ): () => void {
-    const activeStatuses = ["new", "planned", "in-progress", "preview"];
     const q = query(
       collection(db, "feedback"),
-      where("status", "in", activeStatuses),
+      where("status", "in", ACTIVE_STATUSES),
       orderBy("updatedAt", "desc")
     );
     return onSnapshot(q, (snapshot) => {
@@ -263,8 +264,13 @@ export const feedbackApi = {
     const feedbackCollection = collection(db, "feedback");
     const titleWords = title.toLowerCase().split(/\s+/).filter(Boolean);
 
+    const activeStatuses = ACTIVE_STATUSES;
     const results: FeedbackItem[] = [];
-    const q = query(feedbackCollection, orderBy("updatedAt", "desc"));
+    const q = query(
+      feedbackCollection,
+      where("status", "in", activeStatuses),
+      orderBy("updatedAt", "desc")
+    );
 
     const snapshot = await getDocs(q);
 

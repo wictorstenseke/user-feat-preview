@@ -156,7 +156,7 @@ export const ItemDetailDialog = ({
             </div>
 
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                 {item.summary}
               </p>
             </div>

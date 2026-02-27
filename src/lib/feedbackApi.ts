@@ -34,7 +34,7 @@ export const createLocalDraft = (text: string): DraftFeedback => {
   return {
     type,
     title: "User Feedback",
-    summary: text.substring(0, 500),
+    summary: text,
     details: {},
     isFallback: true,
   };

@@ -221,14 +221,16 @@ export const createFeedback = functions.https.onCall(
       );
     }
 
-    const clientIp = request.rawRequest.headers["x-forwarded-for"] as string || "unknown";
-    const isRateLimited = !(await checkRateLimit(`submissions-${clientIp}`, 10, 86400));
-
-    if (isRateLimited) {
-      throw new functions.https.HttpsError(
-        "resource-exhausted",
-        "Too many submissions. Please try again later."
-      );
+    const disableRateLimit = process.env.DISABLE_RATE_LIMIT === "true";
+    if (!disableRateLimit) {
+      const clientIp = request.rawRequest.headers["x-forwarded-for"] as string || "unknown";
+      const isRateLimited = !(await checkRateLimit(`submissions-${clientIp}`, 10, 86400));
+      if (isRateLimited) {
+        throw new functions.https.HttpsError(
+          "resource-exhausted",
+          "Too many submissions. Please try again later."
+        );
+      }
     }
 
     const issueNumber = await createGitHubIssue(title, summary, type, details);

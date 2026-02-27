@@ -292,7 +292,7 @@ export function Landing() {
                           <div className="w-full rounded-2xl border border-input bg-background p-4 space-y-3">
                             <p className="font-semibold text-sm leading-snug">{assistantMsg.draft.title}</p>
 
-                            <p className="text-sm text-muted-foreground leading-relaxed">
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                               {assistantMsg.draft.summary}
                             </p>
 

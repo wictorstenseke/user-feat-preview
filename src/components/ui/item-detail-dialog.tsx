@@ -1,13 +1,13 @@
 import * as React from "react";
 
-import { ArrowUp, Check, ExternalLink, Loader2, ThumbsUp } from "lucide-react";
+import { ArrowUp, Check, ExternalLink, Loader2, X } from "lucide-react";
 
 import { useQuery } from "@tanstack/react-query";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -15,11 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  feedbackKeys,
-  useAddCommentMutation,
-  useAddVoteMutation,
-} from "@/hooks/useFeedback";
+import { feedbackKeys, useAddCommentMutation } from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
 import { formatRelativeDate } from "@/lib/utils";
 
@@ -28,38 +24,6 @@ interface ItemDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   itemId: string;
 }
-
-const getStatusColor = (
-  status: string
-): "secondary" | "outline" | "default" | "destructive" | "link" => {
-  switch (status) {
-    case "new":
-      return "secondary";
-    case "planned":
-      return "outline";
-    case "in-progress":
-      return "default";
-    case "preview":
-      return "link";
-    case "merged":
-      return "secondary";
-    case "closed":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-};
-
-const getStatusLabel = (status: string): string => {
-  switch (status) {
-    case "in-progress":
-      return "In progress";
-    case "closed":
-      return "Closed";
-    default:
-      return status.charAt(0).toUpperCase() + status.slice(1);
-  }
-};
 
 export const ItemDetailDialog = ({
   open,
@@ -74,7 +38,6 @@ export const ItemDetailDialog = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const statusTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const addVoteMutation = useAddVoteMutation();
   const addCommentMutation = useAddCommentMutation();
 
   const { data: item, isLoading: isLoadingItem } = useQuery({
@@ -87,12 +50,6 @@ export const ItemDetailDialog = ({
     queryKey: feedbackKeys.comments(itemId),
     queryFn: () => feedbackApi.getComments(itemId),
     enabled: open,
-  });
-
-  const { data: hasVoted = false } = useQuery({
-    queryKey: feedbackKeys.hasVoted(itemId, userIdentifier),
-    queryFn: () => feedbackApi.hasUserVoted(itemId, userIdentifier),
-    enabled: open && !!userIdentifier,
   });
 
   React.useEffect(() => {
@@ -141,11 +98,6 @@ export const ItemDetailDialog = ({
     );
   };
 
-  const handleVote = () => {
-    if (!item || !userIdentifier || hasVoted) return;
-    addVoteMutation.mutate({ feedbackId: item.id, userId: userIdentifier });
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -171,22 +123,39 @@ export const ItemDetailDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="line-clamp-2">{item.title}</DialogTitle>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
+      >
+        <DialogHeader className="text-left flex flex-row items-center gap-2 flex-wrap">
+          <DialogTitle className="line-clamp-2 flex-1 min-w-0">
+            {item.title}
+          </DialogTitle>
+          <div className="flex items-center gap-2 shrink-0">
+            {item.githubIssueUrl && !isMerged && (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="gap-1"
+              >
+                <a href={item.githubIssueUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="size-4" />
+                  GitHub
+                </a>
+              </Button>
+            )}
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="size-8">
+                <X className="size-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogClose>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={item.type === "feature" ? "default" : "destructive"}>
-                {item.type === "feature" ? "Feature" : "Bug"}
-              </Badge>
-              <Badge variant={getStatusColor(item.status)}>
-                {getStatusLabel(item.status)}
-              </Badge>
-            </div>
-
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                 {item.summary}
@@ -222,19 +191,8 @@ export const ItemDetailDialog = ({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Button
-                variant={hasVoted ? "default" : "outline"}
-                size="sm"
-                onClick={handleVote}
-                disabled={hasVoted}
-                className="gap-1"
-              >
-                <ThumbsUp className="size-4" />
-                {item.votes}
-              </Button>
-
-              {item.previewUrl && !isMerged && (
+            {item.previewUrl && !isMerged && (
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -246,29 +204,13 @@ export const ItemDetailDialog = ({
                     Preview
                   </a>
                 </Button>
-              )}
-
-              {item.githubIssueUrl && !isMerged && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="gap-1"
-                >
-                  <a href={item.githubIssueUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4" />
-                    GitHub
-                  </a>
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           <Separator />
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Comments</h3>
-
             <div className="flex gap-2">
               <Input
                 ref={inputRef}
@@ -291,14 +233,14 @@ export const ItemDetailDialog = ({
               </Button>
             </div>
 
-            <ScrollArea className="h-64 rounded-md border">
-              <div className="flex flex-col p-4">
+            <ScrollArea type="always" className="h-64 rounded-md border">
+              <div className="flex flex-col p-3">
                 {comments.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                     No comments yet
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {[...comments].reverse().map((comment) => {
                       const isSubmitting =
                         commentStatus?.type === "submitting" &&
@@ -309,9 +251,9 @@ export const ItemDetailDialog = ({
                       return (
                         <div
                           key={comment.id}
-                          className="pb-4 border-b last:border-b-0 last:pb-0"
+                          className="pb-2 border-b last:border-b-0 last:pb-0"
                         >
-                          <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center justify-between gap-2 mb-0.5">
                             <span className="font-medium text-sm">
                               {comment.userIdentifier}
                             </span>

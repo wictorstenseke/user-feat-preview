@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/prompt-input";
 import { PromptSuggestion } from "@/components/ui/prompt-suggestion";
 import { Skeleton } from "@/components/ui/skeleton";
-import { feedbackKeys, useAddVoteMutation } from "@/hooks/useFeedback";
+import { feedbackKeys, useAddVoteMutation, useFeedbackRealtimeSync } from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +104,8 @@ export function Landing() {
     localStorage.setItem("userIdentifier", generated);
     return generated;
   });
+
+  useFeedbackRealtimeSync();
 
   const { data: activeFeedback = [], isLoading: isLoadingActive } = useQuery({
     queryKey: feedbackKeys.list("active"),

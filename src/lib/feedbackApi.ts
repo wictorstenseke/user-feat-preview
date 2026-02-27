@@ -5,6 +5,7 @@ import {
   getDocs,
   getDoc,
   increment,
+  onSnapshot,
   orderBy,
   Query,
   query,
@@ -67,6 +68,39 @@ const mapFirestoreDocToFeedback = (
 };
 
 export const feedbackApi = {
+  subscribeToActiveFeedback(
+    onUpdate: (items: FeedbackItem[]) => void
+  ): () => void {
+    const activeStatuses = ["new", "planned", "in-progress", "preview"];
+    const q = query(
+      collection(db, "feedback"),
+      where("status", "in", activeStatuses),
+      orderBy("updatedAt", "desc")
+    );
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs
+        .map(mapFirestoreDocToFeedback)
+        .filter(Boolean) as FeedbackItem[];
+      onUpdate(items);
+    });
+  },
+
+  subscribeToMergedFeedback(
+    onUpdate: (items: FeedbackItem[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, "feedback"),
+      where("status", "in", ["merged"]),
+      orderBy("updatedAt", "desc")
+    );
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs
+        .map(mapFirestoreDocToFeedback)
+        .filter(Boolean) as FeedbackItem[];
+      onUpdate(items);
+    });
+  },
+
   async getFeedbackItems(
     includeStatuses?: string[]
   ): Promise<FeedbackItem[]> {

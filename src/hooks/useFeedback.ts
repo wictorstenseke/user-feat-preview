@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { feedbackApi } from "@/lib/feedbackApi";
@@ -15,6 +17,23 @@ export const feedbackKeys = {
   detail: (id: string) => [...feedbackKeys.all, id] as const,
   hasVoted: (feedbackId: string, userId: string) =>
     ["hasVoted", feedbackId, userId] as const,
+};
+
+export const useFeedbackRealtimeSync = () => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const unsubActive = feedbackApi.subscribeToActiveFeedback((items) => {
+      queryClient.setQueryData(feedbackKeys.list("active"), items);
+    });
+    const unsubMerged = feedbackApi.subscribeToMergedFeedback((items) => {
+      queryClient.setQueryData(feedbackKeys.list("merged"), items);
+    });
+    return () => {
+      unsubActive();
+      unsubMerged();
+    };
+  }, [queryClient]);
 };
 
 interface AddVoteVariables {

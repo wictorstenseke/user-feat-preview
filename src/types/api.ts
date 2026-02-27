@@ -59,6 +59,7 @@ export type FeedbackStatus =
   | "in-progress"
   | "preview"
   | "merged"
+  | "closed"
   | "wontfix"
   | "duplicate";
 

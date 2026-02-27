@@ -642,11 +642,15 @@ export const onGitHubWebhook = functions.https.onRequest(
     const event = req.headers["x-github-event"] as string;
     const payload = req.body;
 
+    console.log(`Webhook received: event="${event}" action="${payload?.action}"`);
+
     try {
       if (event === "issues" && payload.action === "labeled") {
         await handleIssueLabelChange(payload);
       } else if (event === "issues" && payload.action === "unlabeled") {
         await handleIssueLabelChange(payload);
+      } else if (event === "issues" && payload.action === "closed") {
+        await handleIssueClosed(payload);
       } else if (
         event === "pull_request" &&
         payload.action === "closed" &&
@@ -684,6 +688,29 @@ const handleIssueLabelChange = async (payload: {
 
   console.log(
     `Issue #${issueNumber}: status updated ${currentStatus} → ${status}`
+  );
+};
+
+const handleIssueClosed = async (payload: {
+  issue: { number: number };
+}) => {
+  const issueNumber = payload.issue.number;
+
+  console.log(`handleIssueClosed: looking up issue #${issueNumber}`);
+  const feedbackDoc = await findFeedbackByIssueNumber(issueNumber);
+  console.log(`handleIssueClosed: feedbackDoc found=${feedbackDoc !== null}`);
+  if (!feedbackDoc) return;
+
+  const currentStatus = feedbackDoc.data().status;
+  if (currentStatus === "closed") return;
+
+  await feedbackDoc.ref.update({
+    status: "closed",
+    updatedAt: admin.firestore.Timestamp.now(),
+  });
+
+  console.log(
+    `Issue #${issueNumber}: status updated ${currentStatus} → closed`
   );
 };
 

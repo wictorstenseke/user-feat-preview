@@ -38,6 +38,8 @@ const getStatusColor = (
       return "link";
     case "merged":
       return "secondary";
+    case "closed":
+      return "destructive";
     default:
       return "secondary";
   }
@@ -47,6 +49,8 @@ const getStatusLabel = (status: string): string => {
   switch (status) {
     case "in-progress":
       return "In progress";
+    case "closed":
+      return "Closed";
     default:
       return status.charAt(0).toUpperCase() + status.slice(1);
   }

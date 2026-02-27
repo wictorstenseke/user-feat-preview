@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { feedbackKeys, useAddVoteMutation } from "@/hooks/useFeedback";
 import { feedbackApi } from "@/lib/feedbackApi";
+import { formatRelativeDate } from "@/lib/utils";
 
 interface ItemDetailDialogProps {
   open: boolean;
@@ -276,7 +277,7 @@ export const ItemDetailDialog = ({
                             {comment.userIdentifier}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {new Date(comment.createdAt).toLocaleDateString()}
+                            {formatRelativeDate(comment.createdAt)}
                           </span>
                         </div>
                         <p className="text-sm text-foreground leading-relaxed">

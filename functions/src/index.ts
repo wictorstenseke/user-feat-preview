@@ -20,7 +20,7 @@ const octokit = new Octokit({
 });
 
 const extractLinkedIssueNumbers = (text: string): number[] => {
-  const pattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
+  const pattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#(\d+)/gi;
   const matches: number[] = [];
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {

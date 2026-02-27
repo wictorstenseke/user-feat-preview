@@ -14,7 +14,7 @@ const octokit = new Octokit({
     auth: githubToken,
 });
 const extractLinkedIssueNumbers = (text) => {
-    const pattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
+    const pattern = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+\/[\w.-]+)?#(\d+)/gi;
     const matches = [];
     let match;
     while ((match = pattern.exec(text)) !== null) {

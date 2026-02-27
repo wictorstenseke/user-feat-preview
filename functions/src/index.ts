@@ -393,7 +393,7 @@ const extractFallbackTitle = (text: string): string => {
   const trimmed = raw.substring(0, 80).trim();
 
   if (trimmed.length < 5) {
-    return "User feedback submission";
+    return "Untitled feedback";
   }
 
   const firstChar = trimmed.charAt(0).toUpperCase();

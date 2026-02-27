@@ -145,6 +145,19 @@ export const ItemDetailDialog = ({
                 </a>
               </Button>
             )}
+            {item.previewUrl && !isMerged && (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="gap-1"
+              >
+                <a href={item.previewUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="size-4" />
+                  Preview
+                </a>
+              </Button>
+            )}
             <DialogClose asChild>
               <Button variant="ghost" size="icon" className="size-8">
                 <X className="size-4" />
@@ -191,21 +204,6 @@ export const ItemDetailDialog = ({
               </div>
             )}
 
-            {item.previewUrl && !isMerged && (
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  asChild
-                  className="gap-1"
-                >
-                  <a href={item.previewUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="size-4" />
-                    Preview
-                  </a>
-                </Button>
-              </div>
-            )}
           </div>
 
           <Separator />

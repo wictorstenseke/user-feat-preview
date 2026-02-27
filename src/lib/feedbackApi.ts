@@ -26,12 +26,18 @@ const BUG_KEYWORDS = ["bug", "broken", "crash", "error", "fail", "wrong", "not w
 
 const ACTIVE_STATUSES = ["new", "planned", "in-progress", "preview"];
 
+const extractLocalTitle = (text: string): string => {
+  const firstLine = text.split("\n")[0].trim();
+  const trimmed = firstLine.substring(0, 80).trim();
+  return trimmed.length >= 5 ? trimmed : "Untitled feedback";
+};
+
 export const createLocalDraft = (text: string): DraftFeedback => {
   const lowerText = text.toLowerCase();
   const type = BUG_KEYWORDS.some((kw) => lowerText.includes(kw)) ? "bug" : "feature";
   return {
     type,
-    title: "User Feedback",
+    title: extractLocalTitle(text),
     summary: text,
     details: {},
     isFallback: true,

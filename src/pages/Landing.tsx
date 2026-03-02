@@ -218,14 +218,33 @@ export function Landing() {
       setMessages((prev) => [...prev, ...assistantMessages]);
     } catch (error) {
       console.error("Failed to generate draft:", error);
-      setMessages((prev) => [
-        ...prev,
+      const priorUserText = messages
+        .filter((m): m is UserMessage => m.role === "user")
+        .map((m) => m.content)
+        .join("\n\n");
+      const contextText = draft
+        ? `${priorUserText}\n${messageText}`
+        : messageText;
+      const fallbackDraft = createLocalDraft(contextText);
+      const cleanedDraft = {
+        ...fallbackDraft,
+        title: draft?.title?.trim() ? draft.title : "",
+      };
+      setDraft(cleanedDraft);
+      setValidationErrors(null);
+      const assistantMessages: ChatMessage[] = [
         {
           role: "assistant",
           content:
-            "Something went wrong while generating your draft. Please try again.",
+            "We couldn't reach the AI assistant, but here's a draft you can edit and submit.",
+          draft: cleanedDraft,
         },
-      ]);
+        {
+          role: "assistant",
+          content: pickRandom(DRAFT_FOLLOWUP_MESSAGES),
+        },
+      ];
+      setMessages((prev) => [...prev, ...assistantMessages]);
     } finally {
       setIsLoading(false);
     }

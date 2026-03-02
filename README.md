@@ -1,4 +1,4 @@
-# Customer Feedback Previewer
+# Customer Feedback Previewer 🚀
 
 A public, GitHub-connected feedback portal where users can submit feature and bug reports, see their status, and try live previews of in-progress changes.
 

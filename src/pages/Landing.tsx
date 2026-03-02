@@ -43,6 +43,7 @@ import {
   useAddVoteMutation,
   useFeedbackRealtimeSync,
 } from "@/hooks/useFeedback";
+import { USE_AGENT_MODE } from "@/lib/chatConfig";
 import { createLocalDraft, feedbackApi } from "@/lib/feedbackApi";
 import {
   pickRandom,
@@ -188,8 +189,7 @@ export function Landing() {
         ? `${priorUserText}\n${messageText}`
         : messageText;
 
-      const useLLM = import.meta.env.VITE_USE_LLM_DRAFT === "true";
-      const generatedDraft = useLLM
+      const generatedDraft = USE_AGENT_MODE
         ? await feedbackApi.generateDraft(contextText, "")
         : await new Promise<ReturnType<typeof createLocalDraft>>((resolve) =>
             setTimeout(() => resolve(createLocalDraft(contextText)), 800)

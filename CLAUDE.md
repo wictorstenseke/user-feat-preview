@@ -20,6 +20,18 @@ npm run check         # audit + type-check + lint + test (CI)
 npm run generate:routes # Regenerate route tree manually
 ```
 
+## Activating Agent Mode
+
+The chat uses **fake mode** (local keyword-based draft) by default. To switch to **agent mode** (LLM via `generateDraft` Cloud Function):
+
+1. **API key**: Add `ANTHROPIC_API_KEY` to Firebase Functions
+   - Local emulator: `functions/.env`
+   - Production: Firebase Console → Project → Functions → Environment variables
+2. **Toggle**: Add `VITE_USE_LLM_DRAFT=true` to project root `.env`
+3. **Deploy**: `firebase deploy --only functions` then `npm run build` and `firebase deploy --only hosting`
+
+The toggle lives in `src/lib/chatConfig.ts` (`USE_AGENT_MODE`). Change that constant or the env var to switch modes.
+
 ## Project Structure
 
 ```

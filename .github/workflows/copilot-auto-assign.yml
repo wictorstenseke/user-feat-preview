@@ -2,7 +2,9 @@ name: Copilot Auto Assign
 
 on:
   issues:
-    types: [opened]
+    # opened: new issues that already carry the cf:public label
+    # labeled: existing issues that have the cf:public label added after creation
+    types: [opened, labeled]
   workflow_dispatch:
 
 permissions:
@@ -21,6 +23,15 @@ jobs:
             if (!issue) {
               core.info("No issue in payload. Skipping.");
               return;
+            }
+
+            // For labeled events, only proceed when the cf:public label was added
+            if (context.payload.action === "labeled") {
+              const addedLabel = context.payload.label?.name;
+              if (addedLabel !== "cf:public") {
+                core.info(`Label '${addedLabel}' is not cf:public. Skipping.`);
+                return;
+              }
             }
 
             const labels = (issue.labels || [])
@@ -64,18 +75,34 @@ jobs:
               );
             }
 
-            if (!selectedCopilot) {
-              core.warning(
-                `No Copilot assignee found in repository assignable users for issue #${issue.number}.`
-              );
+            if (selectedCopilot) {
+              await github.rest.issues.addAssignees({
+                owner,
+                repo,
+                issue_number: issue.number,
+                assignees: [selectedCopilot],
+              });
+              core.info(`Assigned ${selectedCopilot} to issue #${issue.number}.`);
               return;
             }
 
-            await github.rest.issues.addAssignees({
-              owner,
-              repo,
-              issue_number: issue.number,
-              assignees: [selectedCopilot],
-            });
+            // Preferred candidates not found in listAssignees — try assigning them directly.
+            // GitHub supports assigning copilot even when not listed as a repo collaborator.
+            for (const candidate of preferredCandidates) {
+              try {
+                await github.rest.issues.addAssignees({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                  assignees: [candidate],
+                });
+                core.info(`Assigned ${candidate} to issue #${issue.number}.`);
+                return;
+              } catch (err) {
+                core.info(`Could not assign '${candidate}': ${err?.message ?? String(err)}`);
+              }
+            }
 
-            core.info(`Assigned ${selectedCopilot} to issue #${issue.number}.`);
+            core.warning(
+              `No Copilot assignee could be assigned to issue #${issue.number}.`
+            );

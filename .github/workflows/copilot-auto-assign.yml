@@ -1,0 +1,81 @@
+name: Copilot Auto Assign
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  assign-copilot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign Copilot on public feedback issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) {
+              core.info("No issue in payload. Skipping.");
+              return;
+            }
+
+            const labels = (issue.labels || [])
+              .map((label) => (typeof label === "string" ? label : label.name))
+              .filter(Boolean);
+
+            if (!labels.includes("cf:public")) {
+              core.info(`Issue #${issue.number} is not a public feedback issue. Skipping.`);
+              return;
+            }
+
+            const existingAssignees = (issue.assignees || [])
+              .map((assignee) => assignee.login.toLowerCase());
+
+            if (existingAssignees.some((login) => login.includes("copilot"))) {
+              core.info(`Issue #${issue.number} already has a Copilot assignee. Skipping.`);
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const { data: assignableUsers } = await github.rest.issues.listAssignees({
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const availableLogins = assignableUsers.map((user) => user.login);
+            const preferredCandidates = [
+              "copilot",
+              "github-copilot[bot]",
+              "copilot-swe-agent",
+            ];
+
+            let selectedCopilot = preferredCandidates.find((candidate) =>
+              availableLogins.some((login) => login.toLowerCase() === candidate.toLowerCase())
+            );
+
+            if (!selectedCopilot) {
+              selectedCopilot = availableLogins.find((login) =>
+                login.toLowerCase().includes("copilot")
+              );
+            }
+
+            if (!selectedCopilot) {
+              core.warning(
+                `No Copilot assignee found in repository assignable users for issue #${issue.number}.`
+              );
+              return;
+            }
+
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: issue.number,
+              assignees: [selectedCopilot],
+            });
+
+            core.info(`Assigned ${selectedCopilot} to issue #${issue.number}.`);

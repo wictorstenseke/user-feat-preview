@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 
 import {
   ArrowUp,
+  ChevronDown,
   ExternalLink,
   MessageCircle,
   Square,
@@ -12,6 +13,11 @@ import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   ChatContainerContent,
   ChatContainerRoot,
@@ -802,85 +808,95 @@ export function Landing() {
         mergedFeedback.length > 0 ||
         isLoadingMerged) && (
         <section aria-label="Recently merged">
-          <h2 className="mb-4 text-lg font-semibold">Recently implemented</h2>
-          <p className="mb-4 text-muted-foreground text-sm">
-            Here&apos;s what has been merged and shipped recently.
-          </p>
-          {isLoadingMerged ? (
-            <ItemGroup className="gap-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <FeedbackCardSkeleton key={i} />
-              ))}
-            </ItemGroup>
-          ) : mergedFeedback.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              No merged items yet.
-            </div>
-          ) : (
-            <ItemGroup className="gap-4">
-              {mergedFeedback.map((item) => (
-                <Item
-                  key={item.id}
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer hover:border-primary/60 transition-colors"
-                  onClick={() => handleOpenItemDetail(item.id)}
-                >
-                  <ItemContent>
-                    <ItemHeader>
-                      <ItemTitle>{item.title}</ItemTitle>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">Merged</Badge>
-                      </div>
-                    </ItemHeader>
-                    <ItemDescription>{item.summary}</ItemDescription>
-                    <ItemFooter className="mt-1.5 -mx-4 -mb-3 px-3 py-1.5 rounded-b-[6px] bg-muted/50">
-                      <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleVoteFromList(item.id);
-                          }}
-                          disabled={votedIds.has(item.id)}
-                          className={cn(
-                            "flex items-center gap-1 transition-colors",
-                            votedIds.has(item.id)
-                              ? "cursor-default text-foreground"
-                              : "hover:text-foreground cursor-pointer text-muted-foreground"
-                          )}
-                          aria-label={
-                            votedIds.has(item.id)
-                              ? `You voted for ${item.title}`
-                              : `Vote for ${item.title}`
-                          }
-                        >
-                          <ThumbsUp
-                            className={cn(
-                              "size-3.5",
-                              votedIds.has(item.id) && "fill-current"
-                            )}
-                          />
-                          {item.votes}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenItemDetail(item.id);
-                          }}
-                          className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer text-muted-foreground"
-                          aria-label={`Open item detail for ${item.title}`}
-                        >
-                          <MessageCircle className="size-3.5" />
-                          {item.commentCount}
-                        </button>
-                        <span>{formatRelativeDate(item.lastUpdated)}</span>
-                      </div>
-                    </ItemFooter>
-                  </ItemContent>
-                </Item>
-              ))}
-            </ItemGroup>
-          )}
+          <Collapsible defaultOpen={false}>
+            <CollapsibleTrigger
+              className="group flex w-full items-center justify-between mb-4"
+              aria-label="Toggle recently implemented features"
+            >
+              <h2 className="text-lg font-semibold">Recently implemented</h2>
+              <ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <p className="mb-4 text-muted-foreground text-sm">
+                Here&apos;s what has been merged and shipped recently.
+              </p>
+              {isLoadingMerged ? (
+                <ItemGroup className="gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <FeedbackCardSkeleton key={i} />
+                  ))}
+                </ItemGroup>
+              ) : mergedFeedback.length === 0 ? (
+                <div className="text-center text-muted-foreground">
+                  No merged items yet.
+                </div>
+              ) : (
+                <ItemGroup className="gap-4">
+                  {mergedFeedback.map((item) => (
+                    <Item
+                      key={item.id}
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer hover:border-primary/60 transition-colors"
+                      onClick={() => handleOpenItemDetail(item.id)}
+                    >
+                      <ItemContent>
+                        <ItemHeader>
+                          <ItemTitle>{item.title}</ItemTitle>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary">Merged</Badge>
+                          </div>
+                        </ItemHeader>
+                        <ItemDescription>{item.summary}</ItemDescription>
+                        <ItemFooter className="mt-1.5 -mx-4 -mb-3 px-3 py-1.5 rounded-b-[6px] bg-muted/50">
+                          <div className="flex items-center gap-4 text-muted-foreground text-xs">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVoteFromList(item.id);
+                              }}
+                              disabled={votedIds.has(item.id)}
+                              className={cn(
+                                "flex items-center gap-1 transition-colors",
+                                votedIds.has(item.id)
+                                  ? "cursor-default text-foreground"
+                                  : "hover:text-foreground cursor-pointer text-muted-foreground"
+                              )}
+                              aria-label={
+                                votedIds.has(item.id)
+                                  ? `You voted for ${item.title}`
+                                  : `Vote for ${item.title}`
+                              }
+                            >
+                              <ThumbsUp
+                                className={cn(
+                                  "size-3.5",
+                                  votedIds.has(item.id) && "fill-current"
+                                )}
+                              />
+                              {item.votes}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenItemDetail(item.id);
+                              }}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer text-muted-foreground"
+                              aria-label={`Open item detail for ${item.title}`}
+                            >
+                              <MessageCircle className="size-3.5" />
+                              {item.commentCount}
+                            </button>
+                            <span>{formatRelativeDate(item.lastUpdated)}</span>
+                          </div>
+                        </ItemFooter>
+                      </ItemContent>
+                    </Item>
+                  ))}
+                </ItemGroup>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         </section>
       )}
 

@@ -15,11 +15,19 @@ jobs:
     steps:
       - name: Assign Copilot on public feedback issues
         uses: actions/github-script@v7
+        env:
+          COPILOT_ASSIGN_TOKEN: ${{ secrets.COPILOT_ASSIGN_TOKEN }}
         with:
+          github-token: ${{ secrets.COPILOT_ASSIGN_TOKEN }}
           script: |
             const issue = context.payload.issue;
             if (!issue) {
               core.info("No issue in payload. Skipping.");
+              return;
+            }
+
+            if (!process.env.COPILOT_ASSIGN_TOKEN) {
+              core.setFailed("Missing required secret: COPILOT_ASSIGN_TOKEN");
               return;
             }
 
@@ -41,41 +49,40 @@ jobs:
             }
 
             const { owner, repo } = context.repo;
-            const { data: assignableUsers } = await github.rest.issues.listAssignees({
-              owner,
-              repo,
-              per_page: 100,
-            });
+            const baseBranch = context.payload.repository?.default_branch ?? "main";
 
-            const availableLogins = assignableUsers.map((user) => user.login);
-            const preferredCandidates = [
-              "copilot",
-              "github-copilot[bot]",
-              "copilot-swe-agent",
-            ];
+            try {
+              await github.request("POST /repos/{owner}/{repo}/issues/{issue_number}/assignees", {
+                owner,
+                repo,
+                issue_number: issue.number,
+                assignees: ["copilot-swe-agent[bot]"],
+                agent_assignment: {
+                  target_repo: `${owner}/${repo}`,
+                  base_branch: baseBranch,
+                  custom_instructions: "",
+                },
+                headers: {
+                  accept: "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                },
+              });
+            } catch (error) {
+              const err = error;
+              if (typeof err === "object" && err && "status" in err) {
+                const status = err.status;
+                if (status === 401 || status === 403) {
+                  core.setFailed(
+                    `Copilot assignment failed with ${status}. Check COPILOT_ASSIGN_TOKEN permissions and Copilot assignment access for this repository.`
+                  );
+                  return;
+                }
+                core.setFailed(`Copilot assignment API error: HTTP ${status}`);
+                return;
+              }
 
-            let selectedCopilot = preferredCandidates.find((candidate) =>
-              availableLogins.some((login) => login.toLowerCase() === candidate.toLowerCase())
-            );
-
-            if (!selectedCopilot) {
-              selectedCopilot = availableLogins.find((login) =>
-                login.toLowerCase().includes("copilot")
-              );
-            }
-
-            if (!selectedCopilot) {
-              core.warning(
-                `No Copilot assignee found in repository assignable users for issue #${issue.number}.`
-              );
+              core.setFailed(`Copilot assignment failed: ${String(error)}`);
               return;
             }
 
-            await github.rest.issues.addAssignees({
-              owner,
-              repo,
-              issue_number: issue.number,
-              assignees: [selectedCopilot],
-            });
-
-            core.info(`Assigned ${selectedCopilot} to issue #${issue.number}.`);
+            core.info(`Assigned copilot-swe-agent[bot] to issue #${issue.number}.`);

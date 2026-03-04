@@ -91,6 +91,7 @@
    - `FIREBASE_APP_ID`
    - `PREVIEW_WEBHOOK_SECRET` - Same value as in Cloud Functions
    - `PREVIEW_WEBHOOK_URL` - Your Cloud Functions URL for preview updates
+   - `COPILOT_ASSIGN_TOKEN` - User token for Copilot issue assignment via workflow
 
 2. **Enable GitHub Pages**:
    - Go to repository Settings → Pages
@@ -168,6 +169,12 @@ Labels used for status:
 - Verify GitHub token has `repo` scope
 - Check Cloud Functions logs for errors
 - Ensure repo owner/name are correct
+
+### Copilot not auto-assigned on new issues
+- Check `COPILOT_ASSIGN_TOKEN` exists in repository secrets
+- Verify token permissions include metadata read and write access for issues, pull requests, contents, and actions
+- Inspect `.github/workflows/copilot-auto-assign.yml` run logs for 401/403 errors
+- Manual fallback: open the issue and use **Assignees → Copilot** (or **Assign to Copilot**) to start work immediately
 
 ### LLM not generating drafts
 - Check OpenAI API key is valid

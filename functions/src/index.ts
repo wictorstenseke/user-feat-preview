@@ -15,6 +15,8 @@ const githubRepoName = process.env.GITHUB_REPO_NAME;
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
 const githubWebhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+const COPILOT_AUTOMATION_INSTRUCTION =
+  "@copilot Create a plan and implement this solution in a pull request linked to this issue.";
 
 const octokit = new Octokit({
   auth: githubToken,
@@ -192,6 +194,7 @@ const formatIssueBody = (
     }
   }
 
+  body += `\n\n## Automation\n${COPILOT_AUTOMATION_INSTRUCTION}`;
   body += "\n\n_Submitted via Customer Feedback Previewer_";
 
   return body;
